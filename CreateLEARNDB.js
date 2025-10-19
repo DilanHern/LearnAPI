@@ -1,0 +1,312 @@
+// INSTRUCTIONS:
+// 1. Open MongoDB Compass
+// 2. Connect to your server
+// 3. Open MONGOSH tab
+// 4. Execute: use LEARN
+// 5. Copy and paste all this code in the mongosh console
+
+// 1. Create users collection with validation
+db.createCollection("users", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["type", "information"],
+      properties: {
+        type: {
+          bsonType: "bool",
+          description: "0 = Student, 1 = Teacher"
+        },
+        followers: {
+          bsonType: "array",
+          items: { bsonType: "objectId" }
+        },
+        following: {
+          bsonType: "array",
+          items: { bsonType: "objectId" }
+        },
+        information: {
+          bsonType: "object",
+          required: ["streak"],
+          properties: {
+            streak: {
+              bsonType: "object",
+              required: ["current", "lastConnection"],
+              properties: {
+                current: { bsonType: "int" },
+                lastConnection: { bsonType: "date" }
+              }
+            },
+            achievements: {
+              bsonType: "array",
+              items: { bsonType: "objectId" }
+            },
+            lescoSkills: { bsonType: "int" },
+            librasSkills: { bsonType: "int" },
+            lescoLevel: { bsonType: "int" },
+            librasLevel: { bsonType: "int" },
+            myCourses: {
+              bsonType: "array",
+              items: { bsonType: "objectId" }
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
+// 2. Create achievements collection
+db.createCollection("achievements", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["name", "type", "content", "date"],
+      properties: {
+        name: { bsonType: "string" },
+        type: { bsonType: "int" },
+        content: { bsonType: "string" },
+        date: { bsonType: "date" },
+        premadeId: { bsonType: "objectId" }
+      }
+    }
+  }
+});
+
+// 3. Create premade comments collection
+db.createCollection("premadeComments", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["content"],
+      properties: {
+        content: { bsonType: "string" }
+      }
+    }
+  }
+});
+
+// 4. Create news collection
+db.createCollection("news", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["userId", "date"],
+      properties: {
+        userId: { bsonType: "objectId" },
+        premadeId: { bsonType: "objectId" },
+        description: { bsonType: "string" },
+        likes: { bsonType: "int" },
+        date: { bsonType: "date" },
+        comments: {
+          bsonType: "array",
+          items: {
+            bsonType: "object",
+            required: ["_id", "comment", "userId", "date"],
+            properties: {
+              _id: { bsonType: "objectId" },
+              comment: { bsonType: "string" },
+              userId: { bsonType: "objectId" },
+              date: { bsonType: "date" }
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
+// 5. Create courses collection
+db.createCollection("courses", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["userId", "name", "difficulty", "language", "status"],
+      properties: {
+        userId: { bsonType: "objectId" },
+        name: { bsonType: "string" },
+        description: { bsonType: "string" },
+        difficulty: { bsonType: "int" },
+        language: { bsonType: "bool" }, // 0 = Lesco, 1 = Libras
+        status: { bsonType: "bool" }, // 0 = private, 1 = public
+        students: {
+          bsonType: "array",
+          items: { bsonType: "objectId" }
+        },
+        lessons: {
+          bsonType: "array",
+          items: {
+            bsonType: "object",
+            required: ["_id", "order", "name", "questionCount", "attempts", "time", "forumEnabled"],
+            properties: {
+              _id: { bsonType: "objectId" },
+              order: { bsonType: "int" },
+              name: { bsonType: "string" },
+              questionCount: { bsonType: "int" },
+              attempts: { bsonType: "int" },
+              time: { bsonType: "int" },
+              forumEnabled: { bsonType: "bool" },
+              theory: {
+                bsonType: "array",
+                items: {
+                  bsonType: "object",
+                  properties: {
+                    text: { bsonType: "string" },
+                    sign: { bsonType: "objectId" }
+                  }
+                }
+              },
+              exercises: {
+                bsonType: "array",
+                items: {
+                  bsonType: "object",
+                  required: ["_id", "exerciseType", "order"],
+                  properties: {
+                    _id: { bsonType: "objectId" },
+                    exerciseType: { bsonType: "int" },
+                    order: { bsonType: "int" },
+                    sign: { bsonType: "objectId" },
+                    question: { bsonType: "string" },
+                    possibleAnswers: {
+                      bsonType: "array",
+                      items: { bsonType: "string" }
+                    },
+                    correctAnswer: {
+                      bsonType: "array",
+                      items: { bsonType: "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
+// 6. Create completed courses collection
+db.createCollection("completedCourses", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["userId", "courseId"],
+      properties: {
+        userId: { bsonType: "objectId" },
+        courseId: { bsonType: "objectId" },
+        completionDate: { bsonType: "date" },
+        completedLessons: {
+          bsonType: "array",
+          items: {
+            bsonType: "object",
+            required: ["_id", "lessonId"],
+            properties: {
+              _id: { bsonType: "objectId" },
+              lessonId: { bsonType: "objectId" },
+              correctCount: { bsonType: "int" },
+              remainingAttempts: { bsonType: "int" },
+              timeSeconds: { bsonType: "int" },
+              completionDate: { bsonType: "date" }
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
+// 7. Create forums collection
+db.createCollection("forums", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["lessonId", "userId", "content", "creationDate"],
+      properties: {
+        lessonId: { bsonType: "objectId" },
+        userId: { bsonType: "objectId" },
+        content: { bsonType: "string" },
+        videoURL: { bsonType: "string" },
+        creationDate: { bsonType: "date" },
+        comments: {
+          bsonType: "array",
+          items: {
+            bsonType: "object",
+            required: ["_id", "userId", "content", "date"],
+            properties: {
+              _id: { bsonType: "objectId" },
+              userId: { bsonType: "objectId" },
+              content: { bsonType: "string" },
+              videoURL: { bsonType: "string" },
+              date: { bsonType: "date" }
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
+// 8. Create teacher statistics collection
+db.createCollection("teacherStatistics", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["userId", "generalStatistics"],
+      properties: {
+        userId: { bsonType: "objectId" },
+        generalStatistics: {
+          bsonType: "object",
+          properties: {
+            totalSigns: { bsonType: "int" },
+            averageSuccess: { bsonType: "double" },
+            coursesCreated: { bsonType: "int" },
+            lessonsCreated: { bsonType: "int" },
+            totalStudents: { bsonType: "int" }
+          }
+        },
+        courseStatistics: {
+          bsonType: "array",
+          items: {
+            bsonType: "object",
+            properties: {
+              courseId: { bsonType: "objectId" },
+              averageSuccess: { bsonType: "double" },
+              studentStatistics: {
+                bsonType: "array",
+                items: { bsonType: "objectId" }
+              }
+            }
+          }
+        },
+        lessonStatistics: {
+          bsonType: "array",
+          items: {
+            bsonType: "object",
+            properties: {
+              lessonId: { bsonType: "objectId" },
+              averageAttempts: { bsonType: "double" },
+              successPercentage: { bsonType: "double" }
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
+// 9. Create student statistics collection
+db.createCollection("studentStatistics", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["userId", "completedCourseId"],
+      properties: {
+        userId: { bsonType: "objectId" },
+        completedCourseId: { bsonType: "objectId" },
+        totalSigns: { bsonType: "int" },
+        averageSuccess: { bsonType: "double" }
+      }
+    }
+  }
+});
+
