@@ -14,7 +14,7 @@ db.createCollection("users", {
       properties: {
         type: {
           bsonType: "bool",
-          description: "0 = Student, 1 = Teacher"
+          description: "false = Student, true = Teacher"
         },
         followers: {
           bsonType: "array",
@@ -63,7 +63,10 @@ db.createCollection("achievements", {
       required: ["name", "type", "content", "date"],
       properties: {
         name: { bsonType: "string" },
-        type: { bsonType: "int" },
+        type: { 
+          bsonType: "bool",
+          description: "false = LESCO, true = LIBRAS"
+        },
         content: { bsonType: "string" },
         date: { bsonType: "date" },
         premadeId: { bsonType: "objectId" }
@@ -126,8 +129,14 @@ db.createCollection("courses", {
         name: { bsonType: "string" },
         description: { bsonType: "string" },
         difficulty: { bsonType: "int" },
-        language: { bsonType: "bool" }, // 0 = Lesco, 1 = Libras
-        status: { bsonType: "bool" }, // 0 = private, 1 = public
+        language: { 
+          bsonType: "bool",
+          description: "false = LESCO, true = LIBRAS"
+        },
+        status: { 
+          bsonType: "bool",
+          description: "false = private, true = public"
+        },
         students: {
           bsonType: "array",
           items: { bsonType: "objectId" }
@@ -225,7 +234,10 @@ db.createCollection("forums", {
         lessonId: { bsonType: "objectId" },
         userId: { bsonType: "objectId" },
         content: { bsonType: "string" },
-        videoURL: { bsonType: "string" },
+        videoURL: { 
+          bsonType: ["string", "null"],
+          description: "URL del video (opcional)"
+        },
         creationDate: { bsonType: "date" },
         comments: {
           bsonType: "array",
@@ -236,7 +248,10 @@ db.createCollection("forums", {
               _id: { bsonType: "objectId" },
               userId: { bsonType: "objectId" },
               content: { bsonType: "string" },
-              videoURL: { bsonType: "string" },
+              videoURL: { 
+                bsonType: ["string", "null"],
+                description: "URL del video (opcional)"
+              },
               date: { bsonType: "date" }
             }
           }
@@ -309,4 +324,3 @@ db.createCollection("studentStatistics", {
     }
   }
 });
-
