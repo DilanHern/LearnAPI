@@ -193,8 +193,8 @@ db.createCollection("courses", {
   }
 });
 
-// 6. Create completed courses collection
-db.createCollection("completedCourses", {
+// 6. Create enrolled courses collection (renamed from completedCourses)
+db.createCollection("enrolledCourses", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
@@ -213,7 +213,6 @@ db.createCollection("completedCourses", {
               lessonId: { bsonType: "objectId" },
               correctCount: { bsonType: "int" },
               remainingAttempts: { bsonType: "int" },
-              timeSeconds: { bsonType: "int" },
               completionDate: { bsonType: "date" }
             }
           }
@@ -313,13 +312,15 @@ db.createCollection("studentStatistics", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["userId", "completedCourseId"],
+      required: ["userId", "enrolledCourseId"],
       properties: {
         userId: { bsonType: "objectId" },
-        completedCourseId: { bsonType: "objectId" },
+        enrolledCourseId: { bsonType: "objectId" },
         totalSigns: { bsonType: "int" },
         averageSuccess: { bsonType: "double" }
       }
     }
   }
 });
+
+print("\nCollections created successfully!");

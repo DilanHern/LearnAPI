@@ -234,11 +234,11 @@ db.users.updateOne(
 print("Curso asignado a estudiante y profesor\n");
 
 // ========================================
-// 5. CREAR CURSO COMPLETADO
+// 5. CREAR CURSO INSCRITO (ANTES: COMPLETADO)
 // ========================================
-print("Creando registro de curso completado...");
+print("Creando registro de curso inscrito...");
 
-const completedCourse = {
+const enrolledCourse = {
   userId: studentId,
   courseId: courseId,
   completionDate: new Date("2025-10-15"),
@@ -248,14 +248,14 @@ const completedCourse = {
       lessonId: lessonId,
       correctCount: NumberInt(2),
       remainingAttempts: NumberInt(2),
-      timeSeconds: NumberInt(245),
       completionDate: new Date("2025-10-15")
+      // timeSeconds eliminado
     }
   ]
 };
 
-const completedCourseId = db.completedCourses.insertOne(completedCourse).insertedId;
-print(`Curso completado registrado: ${completedCourseId}\n`);
+const enrolledCourseId = db.enrolledCourses.insertOne(enrolledCourse).insertedId;
+print(`Curso inscrito registrado: ${enrolledCourseId}\n`);
 
 // ========================================
 // 6. CREAR POST EN NEWS
@@ -303,7 +303,6 @@ const forumPost = {
 
 const forumId = db.forums.insertOne(forumPost).insertedId;
 print(`Post de foro creado: ${forumId}\n`);
-
 // ========================================
 // 8. CREAR ESTADÍSTICAS DE ESTUDIANTE
 // ========================================
@@ -314,13 +313,14 @@ const studentStatsId = new ObjectId();
 const studentStats = {
   _id: studentStatsId,
   userId: studentId,
-  completedCourseId: completedCourseId,
+  enrolledCourseId: enrolledCourseId, // Cambiado de completedCourseId
   totalSigns: NumberInt(25),
   averageSuccess: 0.85
 };
 
 db.studentStatistics.insertOne(studentStats);
 print(`Estadísticas de estudiante creadas: ${studentStatsId}\n`);
+
 
 // ========================================
 // 9. CREAR ESTADÍSTICAS DE PROFESOR
