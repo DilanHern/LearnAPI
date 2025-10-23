@@ -23,10 +23,10 @@ const student = {
       lastConnection: new Date()
     },
     achievements: [], // Se llenará después
-    lescoSkills: NumberInt(12),
-    librasSkills: NumberInt(8),
-    lescoLevel: NumberInt(3),
-    librasLevel: NumberInt(2),
+    lescoSkills: NumberInt(2),
+    librasSkills: NumberInt(3),
+    lescoLevel: NumberInt(6),
+    librasLevel: NumberInt(5),
     myCourses: [] // Se llenará después
   }
 };
@@ -37,7 +37,7 @@ print(`Estudiante creado: ${studentId}`);
 // Crear el profesor
 const teacher = {
   type: true, // Profesor
-  name: "Prof. Sofia Castro Álvarez",
+  name: "Sofia Castro Álvarez",
   followers: [studentId], // El estudiante sigue al profesor
   following: [studentId], // El profesor sigue al estudiante
   information: {
@@ -72,25 +72,57 @@ print("Relaciones followers/following establecidas\n");
 // ========================================
 // 3. CREAR LOGRO
 // ========================================
-print("Creando logro...");
+const achievements = [
+  // LESCO
+  {
+    name: "Nivel 3 LESCO Alcanzado",
+    type: false, // LESCO
+    content: "¡Alcanzaste el nivel 3 en LESCO!",
+    date: new Date("2025-10-10"),
+    premadeId: premadeId
+  },
+  {
+    name: "Nivel 4 LESCO Alcanzado",
+    type: false,
+    content: "¡Alcanzaste el nivel 4 en LESCO!",
+    date: new Date("2025-10-15"),
+    premadeId: premadeId
+  },
+  {
+    name: "Nivel 5 LESCO Alcanzado",
+    type: false,
+    content: "¡Alcanzaste el nivel 5 en LESCO!",
+    date: new Date("2025-10-18"),
+    premadeId: premadeId
+  },
+  // LIBRAS
+  {
+    name: "Nivel 3 LIBRAS Alcanzado",
+    type: true, // LIBRAS
+    content: "¡Alcanzaste el nivel 3 en LIBRAS!",
+    date: new Date("2025-10-12"),
+    premadeId: premadeId
+  },
+  {
+    name: "Nivel 4 LIBRAS Alcanzado",
+    type: true,
+    content: "¡Alcanzaste el nivel 4 en LIBRAS!",
+    date: new Date("2025-10-16"),
+    premadeId: premadeId
+  }
+];
 
-const achievement = {
-  name: "Nivel 3 LESCO Alcanzado",
-  type: false, // LESCO
-  content: "¡Alcanzaste el nivel 3 en LESCO!",
-  date: new Date("2025-10-10"),
-  premadeId: premadeId
-};
+const achievementIds = db.achievements.insertMany(achievements).insertedIds;
+print(`✅ ${Object.keys(achievementIds).length} logros creados (3 LESCO + 2 LIBRAS)\n`);
 
-const achievementId = db.achievements.insertOne(achievement).insertedId;
-print(`Logro creado: ${achievementId}\n`);
-
-// Asignar logro al estudiante
+// Asignar todos al estudiante
+const achievementIdArray = Object.values(achievementIds);
 db.users.updateOne(
   { _id: studentId },
-  { $set: { "information.achievements": [achievementId] } }
+  { $set: { "information.achievements": achievementIdArray } }
 );
-print("Logro asignado al estudiante\n");
+print("Todos los logros asignados al estudiante\n");
+
 
 // ========================================
 // 4. CREAR CURSO CON LECCIÓN
