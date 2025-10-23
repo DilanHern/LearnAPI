@@ -7,6 +7,35 @@ from uuid import uuid4
 exercises_bp = Blueprint("exercises", __name__)
 
 # ============================
+# Como realizar peticiones CURL / pruebas
+# ============================
+# curl -X POST http://localhost:5000/api/exercises/start
+#     -H "Content-Type: application/json"
+#     -d '{"userId":"ESTA EN MONGO"
+#          ,"courseId":"ESTA EN MONGO"
+#          ,"lessonId":"ESTA EN MONGO"}'
+
+# curl -X POST http://localhost:5000/api/exercises/answer
+#     -H "Content-Type: application/json"
+#     -d '{"runId":"ESTA EN EL /START"
+#          ,"answer":LA RESPUESTA SEGÚN TIPO}' EJEMPLO:
+#          - Para selección única: {"runId":"...","answer":0 <- index de MONGO ó "respuesta texto"}
+#          - Para verdadero/falso: {"runId":"...","answer":1 <- index de MONGO, true ó "Verdadero"}
+#          - Para ordenar: {"runId":"...","answer":["pieza1","pieza2"]}
+
+# curl -X POST http://localhost:5000/api/exercises/skip
+#     -H "Content-Type: application/json"
+#     -d '{"runId":"ESTA EN EL /START"}'
+
+# curl -X POST http://localhost:5000/api/exercises/finish
+#     -H "Content-Type: application/json"
+#     -d '{"runId":"ESTA EN EL /START"}'
+
+# curl -X POST http://localhost:5000/api/exercises/cancel
+#     -H "Content-Type: application/json"
+#     -d '{"runId":"ESTA EN EL /START"}'
+
+# ============================
 # Sesiones en memoria
 # ============================
 SESSIONS = {}     # runId -> estado temporal
