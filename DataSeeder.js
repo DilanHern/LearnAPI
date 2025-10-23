@@ -1,3 +1,17 @@
+// INSTRUCTIONS:
+// 1. First execute CreateLEARNDB.js to create collections
+// 2. Open MongoDB Compass
+// 3. Connect to your server
+// 4. Open MONGOSH tab
+// 5. Copy and paste all this code in the mongosh console
+
+
+print("Iniciando seed de la base de datos LEARN...\n");
+
+// ========================================
+// 1. CREAR COMENTARIOS PREDEFINIDOS
+// ========================================
+print("Creando comentario predefinido...");
 
 const premadeComment = {
   content: "¡Felicitaciones por tu increíble progreso!"
@@ -57,6 +71,28 @@ const teacher = {
 const teacherId = db.users.insertOne(teacher).insertedId;
 print(`Profesor creado: ${teacherId}\n`);
 
+print("Creando usuario nuevo sin seguidores...");
+const newUser = {
+  type: false, // Estudiante
+  name: "Carlos Rodríguez Pérez",
+  followers: [], // Array vacío - sin seguidores
+  following: [], // Array vacío - no sigue a nadie
+  information: {
+    streak: {
+      current: NumberInt(0), // Nueva racha
+      lastConnection: new Date()
+    },
+    achievements: [], // Sin logros inicialmente
+    lescoSkills: NumberInt(0), // Habilidades iniciales en 0
+    librasSkills: NumberInt(0),
+    lescoLevel: NumberInt(1), // Nivel inicial 1
+    librasLevel: NumberInt(1),
+    myCourses: [] // Sin cursos inicialmente
+  }
+};
+const newUserId = db.users.insertOne(newUser).insertedId;
+print(`Usuario nuevo creado: ${newUserId}\n`);
+
 // Actualizar followers/following del estudiante
 db.users.updateOne(
   { _id: studentId },
@@ -70,8 +106,10 @@ db.users.updateOne(
 print("Relaciones followers/following establecidas\n");
 
 // ========================================
-// 3. CREAR LOGRO
+// 3. CREAR LOGROS
 // ========================================
+print("Creando logros...");
+
 const achievements = [
   // LESCO
   {
@@ -113,7 +151,7 @@ const achievements = [
 ];
 
 const achievementIds = db.achievements.insertMany(achievements).insertedIds;
-print(`✅ ${Object.keys(achievementIds).length} logros creados (3 LESCO + 2 LIBRAS)\n`);
+print(`${Object.keys(achievementIds).length} logros creados (3 LESCO + 2 LIBRAS)\n`);
 
 // Asignar todos al estudiante
 const achievementIdArray = Object.values(achievementIds);
@@ -122,7 +160,6 @@ db.users.updateOne(
   { $set: { "information.achievements": achievementIdArray } }
 );
 print("Todos los logros asignados al estudiante\n");
-
 
 // ========================================
 // 4. CREAR CURSO CON LECCIÓN
@@ -150,7 +187,6 @@ const course = {
       name: "Saludos Básicos",
       questionCount: NumberInt(2),
       attempts: NumberInt(3),
-      time: NumberInt(300),
       forumEnabled: true,
       theory: [
         {

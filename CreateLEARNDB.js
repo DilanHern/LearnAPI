@@ -145,14 +145,13 @@ db.createCollection("courses", {
           bsonType: "array",
           items: {
             bsonType: "object",
-            required: ["_id", "order", "name", "questionCount", "attempts", "time", "forumEnabled"],
+            required: ["_id", "order", "name", "questionCount", "attempts", "forumEnabled"],
             properties: {
               _id: { bsonType: "objectId" },
               order: { bsonType: "int" },
               name: { bsonType: "string" },
               questionCount: { bsonType: "int" },
               attempts: { bsonType: "int" },
-              time: { bsonType: "int" },
               forumEnabled: { bsonType: "bool" },
               theory: {
                 bsonType: "array",
