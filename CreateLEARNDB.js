@@ -10,7 +10,7 @@ db.createCollection("users", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["type", "information"],
+      required: ["type"],
       properties: {
         type: {
           bsonType: "bool",
@@ -202,7 +202,7 @@ db.createCollection("enrolledCourses", {
       properties: {
         userId: { bsonType: "objectId" },
         courseId: { bsonType: "objectId" },
-        completionDate: { bsonType: "date" },
+        completionDate: { bsonType: ["date", "null"] }, 
         completedLessons: {
           bsonType: "array",
           items: {
