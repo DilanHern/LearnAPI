@@ -241,7 +241,7 @@ print("Creando registro de curso inscrito...");
 const enrolledCourse = {
   userId: studentId,
   courseId: courseId,
-  completionDate: new Date("2025-10-15"),
+  completionDate: null,
   completedLessons: [
     {
       _id: new ObjectId(),
@@ -354,3 +354,85 @@ const teacherStats = {
 
 const teacherStatsId = db.teacherStatistics.insertOne(teacherStats).insertedId;
 print(`Estadísticas de profesor creadas: ${teacherStatsId}\n`);
+
+// ========================================
+// 10. CREAR NUEVO CURSO LIBRAS Y ENROLLED COURSE PARA MARÍA
+// ========================================
+print("Creando nuevo curso LIBRAS y enrolled course para María Badilla Castro...");
+
+// Crear IDs únicos para el nuevo curso
+const newLessonId = new ObjectId();
+const newExercise1Id = new ObjectId();
+const newExercise2Id = new ObjectId();
+const newSignId1 = new ObjectId();
+const newSignId2 = new ObjectId();
+
+// Crear el nuevo curso LIBRAS
+const newCourse = {
+  userId: teacherId,  // Creado por Sofia
+  name: "LIBRAS Básico - Números",
+  description: "Aprende los números básicos en LIBRAS",
+  difficulty: NumberInt(1),
+  language: true,  // LIBRAS
+  status: true,  // Público
+  students: [studentId],  // María inscrita
+  lessons: [
+    {
+      _id: newLessonId,
+      order: NumberInt(1),
+      name: "Números del 1 al 5",
+      questionCount: NumberInt(2),
+      attempts: NumberInt(3),
+      forumEnabled: true,
+      theory: [
+        {
+          text: "El número 1 se representa con el dedo índice extendido.",
+          sign: newSignId1
+        }
+      ],
+      exercises: [
+        {
+          _id: newExercise1Id,
+          exerciseType: NumberInt(1),
+          order: NumberInt(1),
+          sign: newSignId1,
+          question: "¿Qué número representa esta seña?",
+          possibleAnswers: ["1", "2", "3", "4"],
+          correctAnswer: ["1"]
+        },
+        {
+          _id: newExercise2Id,
+          exerciseType: NumberInt(1),
+          order: NumberInt(2),
+          sign: newSignId2,
+          question: "¿Cuál es la seña para el número 2?",
+          possibleAnswers: ["Opción A", "Opción B", "Opción C"],
+          correctAnswer: ["Opción B"]
+        }
+      ]
+    }
+  ]
+};
+
+const newCourseId = db.courses.insertOne(newCourse).insertedId;
+print(`Nuevo curso LIBRAS creado: ${newCourseId}`);
+
+// Crear enrolledCourse para María (sin completar)
+const newEnrolledCourse = {
+  userId: studentId,
+  courseId: newCourseId,
+  completionDate: null,  // No completado aún
+  completedLessons: []  // Vacío, no ha completado lecciones
+};
+
+const newEnrolledCourseId = db.enrolledCourses.insertOne(newEnrolledCourse).insertedId;
+print(`Enrolled course creado para María: ${newEnrolledCourseId}`);
+
+// Agregar el nuevo curso a myCourses de María
+db.users.updateOne(
+  { _id: studentId },
+  { $push: { "information.myCourses": newCourseId } }
+);
+print("Nuevo curso agregado a myCourses de María\n");
+
+// ========================================
