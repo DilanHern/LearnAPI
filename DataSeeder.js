@@ -436,3 +436,59 @@ db.users.updateOne(
 print("Nuevo curso agregado a myCourses de María\n");
 
 // ========================================
+// 11. AGREGAR SEGUNDA LECCIÓN AL CURSO LESCO
+// ========================================
+print("Agregando segunda lección al curso LESCO...");
+
+// Crear IDs únicos para la nueva lección
+const lessonId2 = new ObjectId();
+const exercise3Id = new ObjectId();
+const exercise4Id = new ObjectId();
+const signId3 = new ObjectId();
+const signId4 = new ObjectId();
+
+const newLesson = {
+  _id: lessonId2,
+  order: NumberInt(2),
+  name: "Despedidas Básicas",
+  questionCount: NumberInt(2),
+  attempts: NumberInt(3),
+  forumEnabled: true,
+  theory: [
+    {
+      text: "La seña de 'Adiós' se realiza moviendo la mano de lado a lado.",
+      sign: signId3
+    },
+    {
+      text: "La seña de 'Hasta luego' se hace con la mano derecha en forma de 'L' moviéndose hacia adelante.",
+      sign: signId4
+    }
+  ],
+  exercises: [
+    {
+      _id: exercise3Id,
+      exerciseType: NumberInt(1),
+      order: NumberInt(1),
+      sign: signId3,
+      question: "¿Qué significa esta seña?",
+      possibleAnswers: ["Hola", "Adiós", "Gracias", "Por favor"],
+      correctAnswer: ["Adiós"]
+    },
+    {
+      _id: exercise4Id,
+      exerciseType: NumberInt(1),
+      order: NumberInt(2),
+      sign: signId4,
+      question: "¿Cuál es la seña correcta para 'Hasta luego'?",
+      possibleAnswers: ["Opción A", "Opción B", "Opción C"],
+      correctAnswer: ["Opción C"]
+    }
+  ]
+};
+
+// Agregar la nueva lección al curso existente
+db.courses.updateOne(
+  { _id: courseId },  // Usar el ID del curso LESCO creado arriba
+  { $push: { lessons: newLesson } }
+);
+print(`Segunda lección agregada al curso LESCO: ${lessonId2}\n`);
