@@ -527,7 +527,7 @@ def finish_run():
     sess = SESSIONS[run_id]
     if sess["state"] != "active":
         return jsonify({"error": "run not active"}), 400
-
+    
     now = datetime.utcnow()
 
     course = current_app.db.courses.find_one({"_id": sess["courseId"]}, {"lessons": 1})
@@ -537,9 +537,94 @@ def finish_run():
     if not lesson:
         return jsonify({"error": "lesson not found for run"}), 404
 
-    # 1) Mejor puntaje
+    # 1) Mejor puntaje (NO LLAMAR TODAVÍA a _bump_best_correct_count)
     correct = int(sess["correctCount"])
     total = int(sess["total"])
+
+    leveled_up = False
+    new_level  = None
+    lang_code  = None  # "LESCO" | "LIBRAS"
+    # === AÑADIDO (y movido): skills/level-up ANTES del bump de best score ===
+    from bson import ObjectId
+    try:
+        db = current_app.db
+
+        # IDs como ObjectId
+        _uid = sess["userId"]; _cid = sess["courseId"]; _lid = sess["lessonId"]
+        user_id   = _uid if isinstance(_uid, ObjectId) else ObjectId(str(_uid))
+        course_id = _cid if isinstance(_cid, ObjectId) else ObjectId(str(_cid))
+        lesson_id = _lid if isinstance(_lid, ObjectId) else ObjectId(str(_lid))
+
+        # Curso + lección, necesitamos 'type' para idioma
+        course_full = db.courses.find_one({"_id": course_id}, {"lessons": 1, "type": 1})
+        lesson_full = None
+        if course_full:
+            for l in (course_full.get("lessons") or []):
+                if str(l.get("_id")) == str(lesson_id):
+                    lesson_full = l
+                    break
+
+        is_libras = bool(course_full.get("type")) if course_full and "type" in course_full else False
+        lang_code = "LIBRAS" if is_libras else "LESCO"
+        
+        if course_full and lesson_full:
+            # LEE EL PREVIO **ANTES** de actualizar best score (antifarm real)
+            prog = db.enrolledCourses.find_one(
+                {"userId": user_id, "courseId": course_id},
+                {"completedLessons": 1}
+            )
+            prev_best = None
+            if prog and prog.get("completedLessons"):
+                for it in prog["completedLessons"]:
+                    if str(it.get("lessonId")) == str(lesson_id):
+                        prev_best = int(it.get("correctCount", 0))
+                        break
+
+            got_perfect_now = (correct == total)
+            already_perfect_before = (prev_best is not None and prev_best == total)
+
+            if got_perfect_now and not already_perfect_before:
+                # dificultad (1..3); si no existe, 1
+                difficulty = int(lesson_full.get("difficulty", 1))
+                skills_awarded = max(0, difficulty * total)
+
+                user = db.users.find_one({"_id": user_id}, {"information": 1}) or {}
+                info = (user or {}).get("information", {})
+
+                level_key  = "librasLevel"  if is_libras else "lescoLevel"
+                skills_key = "librasSkills" if is_libras else "lescoSkills"
+
+                cur_level  = int(info.get(level_key, 0))
+                cur_skills = int(info.get(skills_key, 0))
+
+                cur_level_before = cur_level
+
+                # sumas y subidas encadenadas (se necesita N+1 para subir de N->N+1)
+                cur_skills += skills_awarded
+                while cur_skills >= (cur_level + 1):
+                    cur_skills -= (cur_level + 1)
+                    cur_level  += 1
+
+                # Si subió, marcamos banderas
+                if cur_level > cur_level_before:
+                    leveled_up = True
+                    new_level  = cur_level
+
+                res = db.users.update_one(
+                    {"_id": user_id},
+                    {"$set": {
+                        f"information.{level_key}":  cur_level,
+                        f"information.{skills_key}": cur_skills
+                    }}
+                )
+                current_app.logger.info(
+                    f"/finish skills matched={res.matched_count} modified={res.modified_count} "
+                    f"user={user_id} {level_key}={cur_level} {skills_key}={cur_skills}"
+                )
+    except Exception:
+        current_app.logger.exception("Error otorgando habilidades/level-up en /finish (pre-bump)")
+
+    # AHORA SÍ: actualiza el mejor puntaje
     _bump_best_correct_count(current_app.db, sess["userId"], course, lesson, correct)
 
     # 2) CompletionDate SIEMPRE
@@ -559,7 +644,12 @@ def finish_run():
         "summary": {"correctCount": correct, "total": total},
         "remainingAttempts": remaining,          # -1 si ilimitado
         "unlimited": (remaining == -1),
-        "finishedAt": (now.isoformat() + "Z")
+        "finishedAt": (now.isoformat() + "Z"),
+        "levelUp": {
+        "happened": leveled_up,
+        "newLevel": new_level,
+        "lang": lang_code
+        }
     }), 200
 
 
