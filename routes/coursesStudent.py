@@ -4,9 +4,9 @@ from datetime import datetime
 import re
 
 
-courses_blueprint = Blueprint('courses', __name__)
+coursesStudent_blueprint = Blueprint('coursesStudent', __name__)
 
-@courses_blueprint.route('/my-courses/<user_id>', methods=['GET'])
+@coursesStudent_blueprint.route('/my-courses/<user_id>', methods=['GET'])
 def get_my_courses(user_id):
     try:
         db = current_app.db
@@ -73,7 +73,7 @@ def get_streak_days(user):
     streak = info.get('streak', {})
     return streak.get('current', 0)
 
-@courses_blueprint.route('/unenroll-course/<user_id>', methods=['DELETE'])
+@coursesStudent_blueprint.route('/unenroll-course/<user_id>', methods=['DELETE'])
 def unenroll_course(user_id):
     try:
         db = current_app.db
@@ -125,7 +125,7 @@ def unenroll_course(user_id):
         return jsonify({'error': str(e)}), 500
 
 # ------------------- Cursos disponibles -------------------
-@courses_blueprint.route('/available-courses/<user_id>', methods=['GET'])
+@coursesStudent_blueprint.route('/available-courses/<user_id>', methods=['GET'])
 def get_available_courses(user_id):
     try:
         db = current_app.db
@@ -192,7 +192,7 @@ def get_info_available_courses(db, user_id, language):
     
     return courses_list
 
-@courses_blueprint.route('/enroll-course/<user_id>', methods=['POST'])
+@coursesStudent_blueprint.route('/enroll-course/<user_id>', methods=['POST'])
 def enroll_course(user_id):
     try:
         db = current_app.db
