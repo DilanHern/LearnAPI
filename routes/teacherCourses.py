@@ -103,7 +103,7 @@ def get_teacher_courses_info(db, teacher_id, language):
                 'userId': str(course['userId']),
                 'name': course.get('name', 'Curso sin nombre'),
                 'description': course.get('description', ''),
-                'difficulty': course.get('difficulty', 0),
+                'difficulty': course.get('difficulty', 1),
                 'language': course.get('language', False),
                 'status': course.get('status', False),
                 'students': enrolled_count,
