@@ -10,7 +10,7 @@ db.createCollection("users", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["type", "information"],
+      required: ["type"],
       properties: {
         type: {
           bsonType: "bool",
@@ -75,20 +75,7 @@ db.createCollection("achievements", {
   }
 });
 
-// 3. Create premade comments collection
-db.createCollection("premadeComments", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["content"],
-      properties: {
-        content: { bsonType: "string" }
-      }
-    }
-  }
-});
-
-// 4. Create news collection
+// 3. Create news collection (modificado: title en lugar de premadeId)
 db.createCollection("news", {
   validator: {
     $jsonSchema: {
@@ -96,7 +83,7 @@ db.createCollection("news", {
       required: ["userId", "date"],
       properties: {
         userId: { bsonType: "objectId" },
-        premadeId: { bsonType: "objectId" },
+        title: { bsonType: "string" },  // Cambiado de premadeId a title
         description: { bsonType: "string" },
         likes: { bsonType: "int" },
         date: { bsonType: "date" },
@@ -118,7 +105,7 @@ db.createCollection("news", {
   }
 });
 
-// 5. Create courses collection
+// 4. Create courses collection
 db.createCollection("courses", {
   validator: {
     $jsonSchema: {
@@ -193,7 +180,7 @@ db.createCollection("courses", {
   }
 });
 
-// 6. Create enrolled courses collection (renamed from completedCourses)
+// 5. Create enrolled courses collection (renamed from completedCourses)
 db.createCollection("enrolledCourses", {
   validator: {
     $jsonSchema: {
@@ -202,7 +189,7 @@ db.createCollection("enrolledCourses", {
       properties: {
         userId: { bsonType: "objectId" },
         courseId: { bsonType: "objectId" },
-        completionDate: { bsonType: "date" },
+        completionDate: { bsonType: ["date", "null"] }, 
         completedLessons: {
           bsonType: "array",
           items: {
@@ -222,7 +209,7 @@ db.createCollection("enrolledCourses", {
   }
 });
 
-// 7. Create forums collection
+// 6. Create forums collection
 db.createCollection("forums", {
   validator: {
     $jsonSchema: {
@@ -259,7 +246,7 @@ db.createCollection("forums", {
   }
 });
 
-// 8. Create teacher statistics collection
+// 7. Create teacher statistics collection
 db.createCollection("teacherStatistics", {
   validator: {
     $jsonSchema: {
@@ -307,7 +294,7 @@ db.createCollection("teacherStatistics", {
   }
 });
 
-// 9. Create student statistics collection
+// 8. Create student statistics collection
 db.createCollection("studentStatistics", {
   validator: {
     $jsonSchema: {
