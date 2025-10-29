@@ -2,6 +2,8 @@ from flask import Flask, request
 from flask_cors import CORS
 from pymongo import MongoClient
 from routes.user import user_blueprint
+from routes.exercises import exercises_bp
+
 from routes.coursesStudent import coursesStudent_blueprint  
 from routes.lessonsStudent import lessonsStudent_blueprint
 from routes.homeStudent import homeStudent_blueprint
@@ -21,6 +23,7 @@ CORS(app)
 
 # Habilitamos las rutas
 app.register_blueprint(user_blueprint, url_prefix='/api/profile')
+app.register_blueprint(exercises_bp, url_prefix='/api/exercises')
 app.register_blueprint(coursesStudent_blueprint, url_prefix='/api')
 app.register_blueprint(lessonsStudent_blueprint, url_prefix='/api')
 app.register_blueprint(homeStudent_blueprint, url_prefix='/api')
