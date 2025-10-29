@@ -5,23 +5,10 @@
 // 4. Open MONGOSH tab
 // 5. Copy and paste all this code in the mongosh console
 
-
 print("Iniciando seed de la base de datos LEARN...\n");
 
 // ========================================
-// 1. CREAR COMENTARIOS PREDEFINIDOS
-// ========================================
-print("Creando comentario predefinido...");
-
-const premadeComment = {
-  content: "¡Felicitaciones por tu increíble progreso!"
-};
-
-const premadeId = db.premadeComments.insertOne(premadeComment).insertedId;
-print(`Comentario predefinido creado: ${premadeId}\n`);
-
-// ========================================
-// 2. CREAR USUARIOS (1 Estudiante y 1 Profesor)
+// 1. CREAR USUARIOS (1 Estudiante y 1 Profesor)
 // ========================================
 print("Creando usuarios...");
 
@@ -106,7 +93,7 @@ db.users.updateOne(
 print("Relaciones followers/following establecidas\n");
 
 // ========================================
-// 3. CREAR LOGROS
+// 2. CREAR LOGROS
 // ========================================
 print("Creando logros...");
 
@@ -116,37 +103,32 @@ const achievements = [
     name: "Nivel 3 LESCO Alcanzado",
     type: false, // LESCO
     content: "¡Alcanzaste el nivel 3 en LESCO!",
-    date: new Date("2025-10-10"),
-    premadeId: premadeId
+    date: new Date("2025-10-10")
   },
   {
     name: "Nivel 4 LESCO Alcanzado",
     type: false,
     content: "¡Alcanzaste el nivel 4 en LESCO!",
-    date: new Date("2025-10-15"),
-    premadeId: premadeId
+    date: new Date("2025-10-15")
   },
   {
     name: "Nivel 5 LESCO Alcanzado",
     type: false,
     content: "¡Alcanzaste el nivel 5 en LESCO!",
-    date: new Date("2025-10-18"),
-    premadeId: premadeId
+    date: new Date("2025-10-18")
   },
   // LIBRAS
   {
     name: "Nivel 3 LIBRAS Alcanzado",
     type: true, // LIBRAS
     content: "¡Alcanzaste el nivel 3 en LIBRAS!",
-    date: new Date("2025-10-12"),
-    premadeId: premadeId
+    date: new Date("2025-10-12")
   },
   {
     name: "Nivel 4 LIBRAS Alcanzado",
     type: true,
     content: "¡Alcanzaste el nivel 4 en LIBRAS!",
-    date: new Date("2025-10-16"),
-    premadeId: premadeId
+    date: new Date("2025-10-16")
   }
 ];
 
@@ -162,7 +144,7 @@ db.users.updateOne(
 print("Todos los logros asignados al estudiante\n");
 
 // ========================================
-// 4. CREAR CURSO CON LECCIÓN
+// 3. CREAR CURSO CON LECCIÓN
 // ========================================
 print("Creando curso...");
 
@@ -234,7 +216,7 @@ db.users.updateOne(
 print("Curso asignado a estudiante y profesor\n");
 
 // ========================================
-// 5. CREAR CURSO INSCRITO (ANTES: COMPLETADO)
+// 4. CREAR CURSO INSCRITO (ANTES: COMPLETADO)
 // ========================================
 print("Creando registro de curso inscrito...");
 
@@ -249,7 +231,6 @@ const enrolledCourse = {
       correctCount: NumberInt(2),
       remainingAttempts: NumberInt(2),
       completionDate: new Date("2025-10-15")
-      // timeSeconds eliminado
     }
   ]
 };
@@ -258,14 +239,14 @@ const enrolledCourseId = db.enrolledCourses.insertOne(enrolledCourse).insertedId
 print(`Curso inscrito registrado: ${enrolledCourseId}\n`);
 
 // ========================================
-// 6. CREAR POST EN NEWS
+// 5. CREAR POST EN NEWS
 // ========================================
 print("Creando publicación...");
 
 const newsPost = {
   userId: studentId,
-  premadeId: premadeId,
-  description: "¡Completé mi primera lección de LESCO!",
+  title: "¡Completé mi primera lección de LESCO!",  // Cambiado de premadeId a title
+  description: "¡Estoy emocionada por aprender más!",
   likes: NumberInt(5),
   date: new Date("2025-10-15"),
   comments: [
@@ -282,7 +263,7 @@ const newsId = db.news.insertOne(newsPost).insertedId;
 print(`Publicación creada: ${newsId}\n`);
 
 // ========================================
-// 7. CREAR POST EN FORO
+// 6. CREAR POST EN FORO
 // ========================================
 print("Creando post en foro...");
 
@@ -290,12 +271,14 @@ const forumPost = {
   lessonId: lessonId,
   userId: studentId,
   content: "¿Alguien puede explicarme mejor la diferencia entre los saludos formales e informales?",
+  videoURL: "https://example.com/video-tutorial.mp4",  // Agregado
   creationDate: new Date("2025-10-13"),
   comments: [
     {
       _id: new ObjectId(),
       userId: teacherId,
       content: "Claro María. Los saludos formales se usan en contextos profesionales, mientras que los informales son para amigos y familia.",
+      videoURL: "https://example.com/respuesta-video.mp4",  // Agregado
       date: new Date("2025-10-13")
     }
   ]
@@ -303,8 +286,9 @@ const forumPost = {
 
 const forumId = db.forums.insertOne(forumPost).insertedId;
 print(`Post de foro creado: ${forumId}\n`);
+
 // ========================================
-// 8. CREAR ESTADÍSTICAS DE ESTUDIANTE
+// 7. CREAR ESTADÍSTICAS DE ESTUDIANTE
 // ========================================
 print("Creando estadísticas de estudiante...");
 
@@ -313,7 +297,7 @@ const studentStatsId = new ObjectId();
 const studentStats = {
   _id: studentStatsId,
   userId: studentId,
-  enrolledCourseId: enrolledCourseId, // Cambiado de completedCourseId
+  enrolledCourseId: enrolledCourseId,
   totalSigns: NumberInt(25),
   averageSuccess: 0.85
 };
@@ -321,9 +305,8 @@ const studentStats = {
 db.studentStatistics.insertOne(studentStats);
 print(`Estadísticas de estudiante creadas: ${studentStatsId}\n`);
 
-
 // ========================================
-// 9. CREAR ESTADÍSTICAS DE PROFESOR
+// 8. CREAR ESTADÍSTICAS DE PROFESOR
 // ========================================
 print("Creando estadísticas de profesor...");
 
@@ -356,7 +339,7 @@ const teacherStatsId = db.teacherStatistics.insertOne(teacherStats).insertedId;
 print(`Estadísticas de profesor creadas: ${teacherStatsId}\n`);
 
 // ========================================
-// 10. CREAR NUEVO CURSO LIBRAS Y ENROLLED COURSE PARA MARÍA
+// 9. CREAR NUEVO CURSO LIBRAS Y ENROLLED COURSE PARA MARÍA
 // ========================================
 print("Creando nuevo curso LIBRAS y enrolled course para María Badilla Castro...");
 
@@ -369,13 +352,13 @@ const newSignId2 = new ObjectId();
 
 // Crear el nuevo curso LIBRAS
 const newCourse = {
-  userId: teacherId,  // Creado por Sofia
+  userId: teacherId,
   name: "LIBRAS Básico - Números",
   description: "Aprende los números básicos en LIBRAS",
   difficulty: NumberInt(1),
   language: true,  // LIBRAS
   status: true,  // Público
-  students: [studentId],  // María inscrita
+  students: [studentId],
   lessons: [
     {
       _id: newLessonId,
@@ -421,8 +404,8 @@ print(`Nuevo curso LIBRAS creado: ${newCourseId}`);
 const newEnrolledCourse = {
   userId: studentId,
   courseId: newCourseId,
-  completionDate: null,  // No completado aún
-  completedLessons: []  // Vacío, no ha completado lecciones
+  completionDate: null,
+  completedLessons: []
 };
 
 const newEnrolledCourseId = db.enrolledCourses.insertOne(newEnrolledCourse).insertedId;
@@ -436,7 +419,7 @@ db.users.updateOne(
 print("Nuevo curso agregado a myCourses de María\n");
 
 // ========================================
-// 11. AGREGAR SEGUNDA LECCIÓN AL CURSO LESCO
+// 10. AGREGAR SEGUNDA LECCIÓN AL CURSO LESCO
 // ========================================
 print("Agregando segunda lección al curso LESCO...");
 
@@ -488,7 +471,7 @@ const newLesson = {
 
 // Agregar la nueva lección al curso existente
 db.courses.updateOne(
-  { _id: courseId },  // Usar el ID del curso LESCO creado arriba
+  { _id: courseId },
   { $push: { lessons: newLesson } }
 );
 print(`Segunda lección agregada al curso LESCO: ${lessonId2}\n`);

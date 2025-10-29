@@ -8,7 +8,7 @@ from routes.homeStudent import homeStudent_blueprint
 app = Flask(__name__)
 
 #Variable global para definir el lenguaje por defecto
-app.config['LESCO'] = False
+app.config['LESCO'] = True
 
 # conexion a MongoDB, ajustar según sea necesario cada uno localmente
 # (luego Jhon lo desplegará en la nube) 
