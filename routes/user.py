@@ -86,9 +86,9 @@ def get_user_achievements(db, user):
         return []
     
     # Determinar qué tipo de logros buscar
-    achievement_type = False if lesco else True 
+    achievement_type = False if lesco else True
     
-    # Buscar logros que coincidan con el idioma
+    # Buscar logros que coincidan con la lengua
     achievements = list(db.achievements.find({
         '_id': {'$in': achievement_ids},
         'type': achievement_type
@@ -111,11 +111,9 @@ def get_achievement_value(achievement):
     numbers = re.findall(r'\d+', content)
     return int(numbers[0]) if numbers else 0
 
-
 def get_language_stats(db, user_id, language):
-
-    # Obtener cursos completados del idioma
-    completed = db.completedCourses.find({'userId': user_id})
+    # Obtener cursos completados de la lengua
+    completed = db.enrolledCourses.find({'userId': user_id})
     
     courses_completed = 0
     lessons_completed = 0
@@ -124,21 +122,24 @@ def get_language_stats(db, user_id, language):
     attempt_count = 0
     
     for comp_course in completed:
-        # Verificar el idioma del curso
         course = db.courses.find_one({'_id': comp_course['courseId']})
-        if course and course.get('language') == language:
+        # Se verifica que el curso este terminado y de la lengua que es
+        if comp_course.get('completionDate') is not None and course.get('language') == language:
             courses_completed += 1
             
-            # Contar lecciones y actividades
+        if course.get('language') == language:
+            # Contar lecciones 
             completed_lessons = comp_course.get('completedLessons', [])
             lessons_completed += len(completed_lessons)
             
             for lesson in completed_lessons:
-                # Obtener información de la lección original
-                original_lesson = next(
-                    (l for l in course.get('lessons', []) if l['_id'] == lesson['lessonId']),
-                    None
-                )
+                # Obtener la leccion con sus datos 
+                original_lesson = None
+                for l in course.get('lessons', []):
+                    if l['_id'] == lesson['lessonId']:
+                        original_lesson = l
+                        break  
+                
                 if original_lesson:
                     activities_completed += original_lesson.get('questionCount', 0)
                     
@@ -227,45 +228,250 @@ def calculate_actual_level(user):
         return libras_level
 
 
-# Endpoint de prueba para crear usuario y hacer tests
-@user_blueprint.route('/test/create-user', methods=['POST'])
-def create_test_user():
-
+@user_blueprint.route('/followers/<user_id>', methods=['GET'])
+def get_user_followers(user_id):
     try:
         db = current_app.db
+        user_oid = ObjectId(user_id)
         
-        # Obtener datos del request o usar valores por defecto
-        data = request.json
+        user = db.users.find_one({'_id': user_oid})
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
         
-        test_user = {
-            "type": data.get('type'),  
-            "name": data.get('name'),
-            "followers": [],
-            "following": [],
-            "information": {
-                "streak": {
-                    "current": data.get('streakDays'),
-                    "lastConnection": datetime.now()
-                },
-                "achievements": [],
-                "lescoSkills": data.get('lescoSkills', 1),
-                "librasSkills": data.get('librasSkills', 1),
-                "lescoLevel": data.get('lescoLevel', 1),
-                "librasLevel": data.get('librasLevel', 1),
-                "myCourses": []
+        followers_ids = user.get('followers', [])
+        
+        if not followers_ids:
+            return jsonify({'followers': []}), 200
+        
+        followers = db.users.find(
+            {'_id': {'$in': followers_ids}},
+            {'name': 1}  
+        )
+        
+        followers_list = [
+            {
+                'name': follower.get('name', 'Usuario'),
+                'initials': get_initials(follower.get('name', 'U'))
             }
-        }
-        
-        result = db.users.insert_one(test_user)
-        user_id = str(result.inserted_id)
+            for follower in followers
+        ]
         
         return jsonify({
-            'message': 'Usuario de prueba creado exitosamente',
-            'user_id': user_id,
-            'profile_url': f'http://localhost:5000/api/profile/{user_id}',
-            'name': test_user['name'],
-        }), 201
+            'followers': followers_list,
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+
+@user_blueprint.route('/following/<user_id>', methods=['GET'])
+def get_user_following(user_id):
+    try:
+        db = current_app.db
+        user_oid = ObjectId(user_id)
+        
+        user = db.users.find_one({'_id': user_oid})
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+
+        following_ids = user.get('following', [])
+
+        if not following_ids:
+            return jsonify({'following': []}), 200
+
+        followings = db.users.find(
+            {'_id': {'$in': following_ids}},
+            {'name': 1}  
+        )
+
+        following_list = [
+            {
+                'name': following.get('name', 'Usuario'),
+                'initials': get_initials(following.get('name', 'U'))
+            }
+            for following in followings
+        ]
+        
+        return jsonify({
+            'following': following_list,
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@user_blueprint.route('/add-friends/<user_id>', methods=['GET'])
+def add_friends(user_id):
+    try:
+        db = current_app.db
+        user_oid = ObjectId(user_id)
+        
+        # Obtener información del usuario actual
+        user = db.users.find_one({'_id': user_oid})
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+
+        # Obtener IDs de usuarios que ya sigue
+        following_ids = user.get('following', [])
+        
+        # Crear lista de IDs a excluir (el usuario mismo + los que ya sigue)
+        exclude_ids = following_ids + [user_oid]
+        
+        # Buscar todos los usuarios EXCEPTO los que ya sigue y él mismo
+        potential_friends = db.users.find(
+            {'_id': {'$nin': exclude_ids}},  
+            {'name': 1}
+        )
+        
+        # Construir lista de posibles amigos
+        friends_list = [
+            {
+                'id': str(friend['_id']),
+                'name': friend.get('name', 'Usuario'),
+                'initials': get_initials(friend.get('name', 'U'))
+            }
+            for friend in potential_friends
+        ]
+        
+        return jsonify({
+            'potentialFriends': friends_list,
+            'count': len(friends_list)
+        }), 200
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@user_blueprint.route('/follow', methods=['POST'])
+def follow_user():
+    try:
+        db = current_app.db
+        data = request.get_json()
+        
+        # Validar datos
+        if not data or 'userId' not in data or 'followId' not in data:
+            return jsonify({'error': 'Se requieren userId y followId'}), 400
+        
+        user_id = ObjectId(data['userId'])
+        follow_id = ObjectId(data['followId'])
+        
+        # Validar que no sea el mismo usuario
+        if user_id == follow_id:
+            return jsonify({'error': 'No puedes seguirte a ti mismo'}), 400
+        
+        # Verificar que ambos usuarios existen
+        user = db.users.find_one({'_id': user_id})
+        user_to_follow = db.users.find_one({'_id': follow_id})
+        
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        if not user_to_follow:
+            return jsonify({'error': 'Usuario a seguir no encontrado'}), 404
+        
+        # Verificar si ya lo sigue
+        if follow_id in user.get('following', []):
+            return jsonify({'error': 'Ya sigues a este usuario'}), 400
+        
+        # Agregar follow_id a la lista de following del usuario
+        db.users.update_one(
+            {'_id': user_id},
+            {'$addToSet': {'following': follow_id}}  # $addToSet evita duplicados
+        )
+        
+        # Agregar user_id a la lista de followers del usuario seguido
+        db.users.update_one(
+            {'_id': follow_id},
+            {'$addToSet': {'followers': user_id}}
+        )
+        
+        return jsonify({
+            'message': 'Usuario seguido exitosamente',
+            'following': {
+                'id': str(follow_id),
+                'name': user_to_follow.get('name', 'Usuario'),
+                'initials': get_initials(user_to_follow.get('name', 'U'))
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@user_blueprint.route('/unfollow', methods=['POST'])
+def unfollow_user():
+    try:
+        db = current_app.db
+        data = request.get_json()
+        
+        # Validar datos
+        if not data or 'userId' not in data or 'unfollowId' not in data:
+            return jsonify({'error': 'Se requieren userId y unfollowId'}), 400
+        
+        user_id = ObjectId(data['userId'])
+        unfollow_id = ObjectId(data['unfollowId'])
+        
+        # Validar que no sea el mismo usuario
+        if user_id == unfollow_id:
+            return jsonify({'error': 'No puedes dejar de seguirte a ti mismo'}), 400
+        
+        # Verificar que ambos usuarios existen
+        user = db.users.find_one({'_id': user_id})
+        user_to_unfollow = db.users.find_one({'_id': unfollow_id})
+        
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        if not user_to_unfollow:
+            return jsonify({'error': 'Usuario a dejar de seguir no encontrado'}), 404
+        
+        # Verificar si realmente lo sigue
+        if unfollow_id not in user.get('following', []):
+            return jsonify({'error': 'No sigues a este usuario'}), 400
+        
+        # Remover unfollow_id de la lista de following del usuario
+        db.users.update_one(
+            {'_id': user_id},
+            {'$pull': {'following': unfollow_id}}  # $pull remueve el elemento
+        )
+        
+        # Remover user_id de la lista de followers del usuario
+        db.users.update_one(
+            {'_id': unfollow_id},
+            {'$pull': {'followers': user_id}}
+        )
+        
+        return jsonify({
+            'message': 'Dejaste de seguir al usuario exitosamente',
+            'unfollowed': {
+                'id': str(unfollow_id),
+                'name': user_to_unfollow.get('name', 'Usuario'),
+                'initials': get_initials(user_to_unfollow.get('name', 'U'))
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@user_blueprint.route('/teacher/<user_id>', methods=['GET'])
+def get_teacher_profile(user_id):
+    try:
+        db = current_app.db
+        user_oid = ObjectId(user_id)
+        user = db.users.find_one({'_id': user_oid})
+        if not user:
+            return jsonify({'error': 'Profesor no encontrado'}), 404
+        
+        # Verificar que sea profesor (type: true)
+        if user.get('type') != True:
+            return jsonify({'error': 'El usuario no es un profesor'}), 400
+        
+        profile_data = {
+            'name': user.get('name', 'Profesor'),
+            'initials': get_initials(user.get('name', 'P')),
+            'followers': len(user.get('followers', [])),
+            'following': len(user.get('following', []))
+        }
+        
+        return jsonify(profile_data), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
