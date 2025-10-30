@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, current_app, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
 from routes.user import user_blueprint
@@ -11,7 +11,7 @@ from routes.homeStudent import homeStudent_blueprint
 app = Flask(__name__)
 
 #Variable global para definir el lenguaje por defecto
-app.config['LESCO'] = True
+app.config['LESCO'] = False
 
 # conexion a MongoDB, ajustar según sea necesario cada uno localmente
 # (luego Jhon lo desplegará en la nube) 
@@ -34,6 +34,40 @@ app.register_blueprint(homeStudent_blueprint, url_prefix='/api')
 @app.route('/health')   
 def health():
     return {'status': 'ok'}, 200
+
+# Endpoint para alternar el valor de LESCO dependiendo del valor que se le de
+@app.route('/api/language', methods=['POST'])
+def set_lesco():
+    try:
+        data = request.get_json()
+        value = data.get('value')
+        
+        if value not in [0, 1]:
+            return jsonify({'error': 'Value must be 0 or 1'}), 400
+        
+        # Establecer el valor de LESCO basado en el número
+        current_app.config['LESCO'] = bool(value)  # 1 → True, 0 → False
+        
+        return jsonify({
+            'message': 'LESCO set successfully',
+            'newValue': current_app.config['LESCO']
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+
+@app.route('/api/language/status', methods=['GET'])
+def get_lesco():
+    try:
+        # Devolver el valor actual de LESCO
+        return jsonify({
+            'lesco': current_app.config['LESCO']
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
