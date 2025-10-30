@@ -284,25 +284,151 @@ def _set_lesson_completion_date(db, user_oid, course_doc, lesson_doc, when_dt):
     )
 
 # ============================
+# News helpers 
+# ============================
+def _news_title_desc_for_achievement(user_name: str, category: str, value: int, type_bool: bool):
+    lang = "LIBRAS" if type_bool else "LESCO"
+    if category == "level":
+        title = f"¡{user_name} acaba de subir a nivel {value}!"
+        desc  = f"¡Felicidades! Progreso en {lang}."
+    elif category == "courses":
+        title = f"¡{user_name} completó {value} cursos!"
+        desc  = f"Sigue así, avanzando en {lang}."
+    elif category == "achievements":
+        title = f"¡{user_name} alcanzó {value} logros!"
+        desc  = "¡Gran constancia y dedicación!"
+    else:
+        title = f"¡{user_name} consiguió un nuevo logro!"
+        desc  = ""
+    return title, desc
+
+def _user_display_name_for_news(user_doc: dict) -> str:
+    """
+    Prioridad:
+    1) users.name (string completo)
+    2) users.firstName + users.lastName
+    4) users.email
+    5) 'Usuario'
+    """
+    if not user_doc:
+        return "Usuario"
+
+    # 1) name en raíz
+    nm = user_doc.get("name")
+    if isinstance(nm, str) and nm.strip():
+        return nm.strip()
+
+    # 2) firstName + lastName en raíz
+    fn = user_doc.get("firstName") or ""
+    ln = user_doc.get("lastName") or ""
+    full = f"{fn} {ln}".strip()
+    if full:
+        return full
+
+    # 4) email
+    em = user_doc.get("email")
+    if isinstance(em, str) and em.strip():
+        return em.strip()
+
+    return "Usuario"
+
+def _create_news_after_achievement(db, user_oid: ObjectId, category: str, value: int, type_bool: bool):
+    """
+    Crea una noticia con la forma:
+    {
+      userId: ObjectId,
+      title: string,
+      description: string,
+      likes: 0,
+      date: Date,
+      comments: []
+    }
+    Evita duplicar exacto (mismo userId + title + description)
+    """
+    udoc = db.users.find_one({"_id": user_oid}, {"information": 1, "firstName": 1, "lastName": 1, "name": 1, "email": 1}) or {}
+    display = _user_display_name_for_news(udoc)
+    title, desc = _news_title_desc_for_achievement(display, category, value, type_bool)
+
+    exists = db.news.find_one({
+        "userId": user_oid,
+        "title": title,
+        "description": desc,
+    }, {"_id": 1})
+
+    if exists:
+        return
+
+    db.news.insert_one({
+        "userId": user_oid,
+        "title": title,
+        "description": desc,
+        "likes": 0,
+        "date": datetime.utcnow(),
+        "comments": []
+    })
+
+def _create_news_generic(db, user_oid, title: str, description: str):
+    """
+    Crea una noticia genérica con la estructura estándar.
+    Evita duplicados exactos por usuario + título + descripción el mismo día.
+    """
+    exists = db.news.find_one({
+        "userId": user_oid,
+        "title": title,
+        "description": description,
+        "date": {"$gte": datetime.utcnow()}
+    }, {"_id": 1})
+    if exists:
+        return
+
+    db.news.insert_one({
+        "userId": user_oid,
+        "title": title,
+        "description": description,
+        "likes": 0,
+        "date": datetime.utcnow(),
+        "comments": []
+    })
+
+def _create_news_course_unsubscribe(db, user_oid, course_doc):
+    """
+    Crea noticia cuando el usuario se desuscribe de un curso.
+    """
+    user_doc = db.users.find_one({"_id": user_oid}, {"name": 1, "firstName": 1, "lastName": 1})
+    user_name = _user_display_name_for_news(user_doc)
+    course_name = course_doc.get("name", "un curso")
+
+    title = f"{user_name} dejó el curso {course_name}"
+    desc = "¡No te rindas!"
+
+    _create_news_generic(db, user_oid, title, desc)
+
+def _create_news_activity_result(db, user_oid, course_doc, lesson_doc, correct: int, total: int):
+    """
+    Crea noticia cuando el usuario termina una actividad/lección desde el frontend.
+    """
+    user_doc = db.users.find_one({"_id": user_oid}, {"name": 1, "firstName": 1, "lastName": 1})
+    user_name = _user_display_name_for_news(user_doc)
+
+    course_name = course_doc.get("name", "un curso")
+    lesson_name = lesson_doc.get("name", "una lección")
+
+    title = f"{user_name} obtuvo {correct}/{total} en la lección {lesson_name} del curso {course_name}"
+
+    # Descripción dinámica según desempeño
+    ratio = (correct / total) if total > 0 else 0
+    if ratio >= 0.9:
+        desc = "¡Excelente trabajo!"
+    elif ratio >= 0.6:
+        desc = "Buen desempeño, sigue mejorando."
+    else:
+        desc = "No te preocupes, la práctica hace al maestro."
+
+    _create_news_generic(db, user_oid, title, desc)
+
+# ============================
 # Achievements helpers 
 # ============================
-
-def _ensure_achievement(db, type_bool, name, content):
-    ach = db.achievements.find_one({
-        "type": type_bool,
-        "name": name,
-        "content": content,
-    })
-    if ach:
-        return ach["_id"]
-    res = db.achievements.insert_one({
-        "type": type_bool,        # False=LESCO, True=LIBRAS
-        "name": name,
-        "content": content,
-        "date": datetime.utcnow(),   
-    })
-    return res.inserted_id
-
 def _grant_achievement(db, user_oid, ach_id):
     """
     Agrega el ObjectId del logro al usuario si aún no lo tiene.
@@ -361,8 +487,11 @@ def _grant_milestone(db, user_oid, type_bool, category, value):
     if not ach_id:
         # No existe el doc en achievements
         return False
-
-    return _grant_achievement(db, user_oid, ach_id)
+    
+    granted = _grant_achievement(db, user_oid, ach_id)
+    if granted:
+        _create_news_after_achievement(db, user_oid, category, value, type_bool)
+    return granted
 
 def _check_and_award_achievements_count(db, user_oid, type_bool):
     """
