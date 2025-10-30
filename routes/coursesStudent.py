@@ -1,7 +1,9 @@
 from flask import Blueprint, jsonify, current_app, request
 from bson import ObjectId
 from datetime import datetime
+from routes.exercises import _create_news_course_unsubscribe
 import re
+
 
 
 coursesStudent_blueprint = Blueprint('coursesStudent', __name__)
@@ -100,6 +102,11 @@ def unenroll_course(user_id, course_id):
         if not existing_enrollment:
             return jsonify({'error': 'No estás inscrito en este curso'}), 404
         
+        # Solo crear noticia si el curso NO estaba terminado
+        # (completionDate == None o no existe el campo)
+        completion_date = existing_enrollment.get('completionDate', None)
+        should_create_news = (completion_date is None)
+
         # Eliminar el enrolledCourse
         db.enrolledCourses.delete_one({
             'userId': user_oid,
@@ -117,6 +124,12 @@ def unenroll_course(user_id, course_id):
             {'_id': course_oid},
             {'$pull': {'students': user_oid}}
         )
+        # Crear noticia si NO estaba terminado
+        if should_create_news:
+            try:
+                _create_news_course_unsubscribe(current_app.db, user_oid, course)
+            except Exception:
+                current_app.logger.exception("Error creando noticia de desuscripción")
         
         return jsonify({'message': 'Desinscripción exitosa'}), 200
         

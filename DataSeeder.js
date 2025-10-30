@@ -100,35 +100,161 @@ print("Creando logros...");
 const achievements = [
   // LESCO
   {
-    name: "Nivel 3 LESCO Alcanzado",
-    type: false, // LESCO
-    content: "¡Alcanzaste el nivel 3 en LESCO!",
-    date: new Date("2025-10-10")
-  },
-  {
-    name: "Nivel 4 LESCO Alcanzado",
+    name: "¡Nivel 10!",
     type: false,
-    content: "¡Alcanzaste el nivel 4 en LESCO!",
-    date: new Date("2025-10-15")
+    content: "Subiste a nivel 10.",
+    date: new Date("2025-28-10")
   },
   {
-    name: "Nivel 5 LESCO Alcanzado",
+    name: "¡Nivel 25!",
     type: false,
-    content: "¡Alcanzaste el nivel 5 en LESCO!",
-    date: new Date("2025-10-18")
-  },
-  // LIBRAS
-  {
-    name: "Nivel 3 LIBRAS Alcanzado",
-    type: true, // LIBRAS
-    content: "¡Alcanzaste el nivel 3 en LIBRAS!",
-    date: new Date("2025-10-12")
+    content: "Subiste a nivel 25.",
+    date: new Date("2025-28-10")
   },
   {
-    name: "Nivel 4 LIBRAS Alcanzado",
+    name: "¡Nivel 50!",
+    type: false,
+    content: "Subiste a nivel 50.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "¡Nivel 100!",
+    type: false,
+    content: "Subiste a nivel 100.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "10 cursos completados",
+    type: false,
+    content: "Completaste 10 cursos.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "25 cursos completados",
+    type: false,
+    content: "Completaste 25 cursos.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "50 cursos completados",
+    type: false,
+    content: "Completaste 50 cursos.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "100 cursos completados",
+    type: false,
+    content: "Completaste 100 cursos.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "5 logros conseguidos",
+    type: false,
+    content: "Conseguiste 5 logros.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "10 logros conseguidos",
+    type: false,
+    content: "Conseguiste 5 logros.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "15 logros conseguidos",
+    type: false,
+    content: "Conseguiste 5 logros.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "20 logros conseguidos",
+    type: false,
+    content: "Conseguiste 5 logros.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "25 logros conseguidos",
+    type: false,
+    content: "Conseguiste 25 logros.",
+    date: new Date("2025-28-10")
+  },
+  //LIBRAS
+  {
+    name: "¡Nivel 10!",
     type: true,
-    content: "¡Alcanzaste el nivel 4 en LIBRAS!",
-    date: new Date("2025-10-16")
+    content: "Subiste a nivel 10.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "¡Nivel 25!",
+    type: true,
+    content: "Subiste a nivel 25.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "¡Nivel 50!",
+    type: true,
+    content: "Subiste a nivel 50.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "¡Nivel 100!",
+    type: true,
+    content: "Subiste a nivel 100.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "10 cursos completados",
+    type: true,
+    content: "Completaste 10 cursos.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "25 cursos completados",
+    type: true,
+    content: "Completaste 25 cursos.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "50 cursos completados",
+    type: true,
+    content: "Completaste 50 cursos.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "100 cursos completados",
+    type: true,
+    content: "Completaste 100 cursos.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "5 logros conseguidos",
+    type: true,
+    content: "Conseguiste 5 logros.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "10 logros conseguidos",
+    type: true,
+    content: "Conseguiste 10 logros.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "15 logros conseguidos",
+    type: true,
+    content: "Conseguiste 15 logros.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "20 logros conseguidos",
+    type: true,
+    content: "Conseguiste 20 logros.",
+    date: new Date("2025-28-10")
+  },
+  {
+    name: "25 logros conseguidos",
+    type: true,
+    content: "Conseguiste 25 logros.",
+    date: new Date("2025-28-10")
   }
 ];
 

@@ -40,6 +40,7 @@ exercises_bp = Blueprint("exercises", __name__)
 # ============================
 SESSIONS = {}     # runId -> estado temporal
 USER_ACTIVE = {}  # str(userId) -> runId
+_ACH_CACHE = {} # clave: (type_bool, name) 
 
 # ============================
 # Helpers
@@ -181,7 +182,7 @@ def _ensure_progress(db, user_oid, course_doc, lesson_doc):
         db.enrolledCourses.insert_one({
             "userId": user_oid,
             "courseId": course_doc["_id"],
-            # NO escribir completionDate del curso (dejarlo ausente)
+            "completionDate": None,
             "completedLessons": []
         })
         prog = db.enrolledCourses.find_one({"userId": user_oid, "courseId": course_doc["_id"]})
@@ -281,6 +282,319 @@ def _set_lesson_completion_date(db, user_oid, course_doc, lesson_doc, when_dt):
         },
         {"$set": {"completedLessons.$.completionDate": when_dt}}
     )
+
+# ============================
+# News helpers 
+# ============================
+def _news_title_desc_for_achievement(user_name: str, category: str, value: int, type_bool: bool):
+    lang = "LIBRAS" if type_bool else "LESCO"
+    if category == "level":
+        title = f"¡{user_name} acaba de subir a nivel {value}!"
+        desc  = f"¡Felicidades! Progreso en {lang}."
+    elif category == "courses":
+        title = f"¡{user_name} completó {value} cursos!"
+        desc  = f"Sigue así, avanzando en {lang}."
+    elif category == "achievements":
+        title = f"¡{user_name} alcanzó {value} logros!"
+        desc  = "¡Gran constancia y dedicación!"
+    else:
+        title = f"¡{user_name} consiguió un nuevo logro!"
+        desc  = ""
+    return title, desc
+
+def _user_display_name_for_news(user_doc: dict) -> str:
+    """
+    Prioridad:
+    1) users.name (string completo)
+    2) users.firstName + users.lastName
+    4) users.email
+    5) 'Usuario'
+    """
+    if not user_doc:
+        return "Usuario"
+
+    # 1) name en raíz
+    nm = user_doc.get("name")
+    if isinstance(nm, str) and nm.strip():
+        return nm.strip()
+
+    # 2) firstName + lastName en raíz
+    fn = user_doc.get("firstName") or ""
+    ln = user_doc.get("lastName") or ""
+    full = f"{fn} {ln}".strip()
+    if full:
+        return full
+
+    # 4) email
+    em = user_doc.get("email")
+    if isinstance(em, str) and em.strip():
+        return em.strip()
+
+    return "Usuario"
+
+def _create_news_after_achievement(db, user_oid: ObjectId, category: str, value: int, type_bool: bool):
+    """
+    Crea una noticia con la forma:
+    {
+      userId: ObjectId,
+      title: string,
+      description: string,
+      likes: 0,
+      date: Date,
+      comments: []
+    }
+    Evita duplicar exacto (mismo userId + title + description)
+    """
+    udoc = db.users.find_one({"_id": user_oid}, {"information": 1, "firstName": 1, "lastName": 1, "name": 1, "email": 1}) or {}
+    display = _user_display_name_for_news(udoc)
+    title, desc = _news_title_desc_for_achievement(display, category, value, type_bool)
+
+    exists = db.news.find_one({
+        "userId": user_oid,
+        "title": title,
+        "description": desc,
+    }, {"_id": 1})
+
+    if exists:
+        return
+
+    db.news.insert_one({
+        "userId": user_oid,
+        "title": title,
+        "description": desc,
+        "likes": 0,
+        "date": datetime.utcnow(),
+        "comments": []
+    })
+
+def _create_news_generic(db, user_oid, title: str, description: str):
+    """
+    Crea una noticia genérica con la estructura estándar.
+    Evita duplicados exactos por usuario + título + descripción el mismo día.
+    """
+    exists = db.news.find_one({
+        "userId": user_oid,
+        "title": title,
+        "description": description,
+        "date": {"$gte": datetime.utcnow()}
+    }, {"_id": 1})
+    if exists:
+        return
+
+    db.news.insert_one({
+        "userId": user_oid,
+        "title": title,
+        "description": description,
+        "likes": 0,
+        "date": datetime.utcnow(),
+        "comments": []
+    })
+
+def _create_news_course_unsubscribe(db, user_oid, course_doc):
+    """
+    Crea noticia cuando el usuario se desuscribe de un curso.
+    """
+    user_doc = db.users.find_one({"_id": user_oid}, {"name": 1, "firstName": 1, "lastName": 1})
+    user_name = _user_display_name_for_news(user_doc)
+    course_name = course_doc.get("name", "un curso")
+
+    title = f"{user_name} dejó el curso {course_name}"
+    desc = "¡No te rindas!"
+
+    _create_news_generic(db, user_oid, title, desc)
+
+def _create_news_activity_result(db, user_oid, course_doc, lesson_doc, correct: int, total: int):
+    """
+    Crea noticia cuando el usuario termina una actividad/lección desde el frontend.
+    """
+    user_doc = db.users.find_one({"_id": user_oid}, {"name": 1, "firstName": 1, "lastName": 1})
+    user_name = _user_display_name_for_news(user_doc)
+
+    course_name = course_doc.get("name", "un curso")
+    lesson_name = lesson_doc.get("name", "una lección")
+
+    title = f"{user_name} obtuvo {correct}/{total} en la lección {lesson_name} del curso {course_name}"
+
+    # Descripción dinámica según desempeño
+    ratio = (correct / total) if total > 0 else 0
+    if ratio >= 0.9:
+        desc = "¡Excelente trabajo!"
+    elif ratio >= 0.6:
+        desc = "Buen desempeño, sigue mejorando."
+    else:
+        desc = "No te preocupes, la práctica hace al maestro."
+
+    _create_news_generic(db, user_oid, title, desc)
+
+# ============================
+# Achievements helpers 
+# ============================
+def _grant_achievement(db, user_oid, ach_id):
+    """
+    Agrega el ObjectId del logro al usuario si aún no lo tiene.
+    """
+    if not ach_id:
+        return False
+
+    user = db.users.find_one({"_id": user_oid}, {"information.achievements": 1}) or {}
+    info = (user or {}).get("information", {})
+    owned = set(str(x) for x in info.get("achievements", []))
+
+    if str(ach_id) in owned:
+        return False
+
+    db.users.update_one(
+        {"_id": user_oid},
+        {"$addToSet": {"information.achievements": ach_id}}
+    )
+    return True
+
+def _is_lesson_complete_item(item, lesson_total: int) -> bool:
+    """
+    completedLessons item se considera COMPLETO si:
+      - remainingAttempts == 0, o
+      - (modo ilimitado -1) o limitado, pero correctCount == total de preguntas.
+    """
+    remaining = _as_int(item.get("remainingAttempts"), 0)
+    correct   = _as_int(item.get("correctCount"), 0)
+
+    # En ilimitado (-1) solo cuenta como completo si acertó todo.
+    if remaining == -1:
+        return (lesson_total > 0) and (correct == lesson_total)
+
+    # En limitado: o se quedó sin intentos, o acertó todo.
+    return (remaining == 0) or ((lesson_total > 0) and (correct == lesson_total))
+
+def _grant_milestone(db, user_oid, type_bool, category, value):
+    """
+    Otorga un logro usando un documento EXISTENTE en achievements.
+    category in {'level','courses','achievements'}.
+    Los 'name' deben existir en tu colección con ese 'type'.
+    """
+    if category == "level":
+        name = f"¡Nivel {value}!"
+        content = f"Subiste a nivel {value}."
+    elif category == "courses":
+        name = f"{value} cursos completados"
+        content = f"Completaste {value} cursos."
+    elif category == "achievements":
+        name = f"{value} logros conseguidos"
+        content = f"Conseguiste {value} logros."
+    else:
+        return False
+
+    ach_id = _find_existing_achievement_id(db, type_bool, name, content)
+    if not ach_id:
+        # No existe el doc en achievements
+        return False
+    
+    granted = _grant_achievement(db, user_oid, ach_id)
+    if granted:
+        _create_news_after_achievement(db, user_oid, category, value, type_bool)
+    return granted
+
+def _check_and_award_achievements_count(db, user_oid, type_bool):
+    """
+    Revisa la cantidad total de logros del usuario (después de otorgar uno)
+    y otorga el hito de cantidad (5/10/15/20/25) si aplica.
+    """
+    user = db.users.find_one({"_id": user_oid}, {"information.achievements": 1}) or {}
+    info = (user or {}).get("information", {})
+    total = len(info.get("achievements", []))
+
+    for k in (5, 10, 15, 20, 25):
+        if total == k:
+            _grant_milestone(db, user_oid, type_bool, "achievements", k)
+            break
+
+def _are_all_lessons_complete(db, user_oid, course_doc) -> bool:
+    """
+    Devuelve True si TODAS las lecciones del curso están completas bajo la regla:
+    - remainingAttempts == 0  OR  correctCount == totalPreguntas
+    """
+    prog = db.enrolledCourses.find_one(
+        {"userId": user_oid, "courseId": course_doc["_id"]},
+        {"completedLessons": 1}
+    )
+    if not prog:
+        return False
+
+    cl = prog.get("completedLessons") or []
+    cl_map = {str(x.get("lessonId")): x for x in cl}
+
+    lessons = course_doc.get("lessons") or []
+    for l in lessons:
+        total_q = len(l.get("exercises") or [])
+        item = cl_map.get(str(l.get("_id")))
+        if not item:
+            return False
+        if not _is_lesson_complete_item(item, total_q):
+            return False
+
+    return True
+
+def _mark_course_completed_if_needed(db, user_oid, course_doc, when_dt):
+    prog = db.enrolledCourses.find_one({"userId": user_oid, "courseId": course_doc["_id"]})
+    if not prog:
+        return False
+    if prog.get("completionDate"):
+        return False
+    if _are_all_lessons_complete(db, user_oid, course_doc):
+        print("si entro")
+        db.enrolledCourses.update_one(
+            {"_id": prog["_id"]},
+            {"$set": {"completionDate": when_dt}}
+        )
+        return True
+    return False
+
+def _count_completed_courses_by_type(db, user_oid, type_bool):
+    completed = list(db.enrolledCourses.find(
+        {"userId": user_oid, "completionDate": {"$ne": None}},
+        {"courseId": 1}
+    ))
+    if not completed:
+        return 0
+    course_ids = [c["courseId"] for c in completed]
+    courses = db.courses.find({"_id": {"$in": course_ids}}, {"type": 1})
+    by_id_type = {c["_id"]: bool(c.get("type")) for c in courses}
+    count = 0
+    for c in completed:
+        if by_id_type.get(c["courseId"], False) == type_bool:
+            count += 1
+    return count
+
+def _find_existing_achievement_id(db, type_bool, name, content=None):
+    """
+    Busca un logro ya creado en db.achievements y devuelve su _id.
+    - Primero intenta por (type, name, content) si 'content' fue dado.
+    - Si no encuentra, intenta por (type, name).
+    """
+    key = (bool(type_bool), name)
+    if key in _ACH_CACHE:
+        return _ACH_CACHE[key]
+
+    base_q = {"type": bool(type_bool), "name": name}
+
+    # 1) Intento estricto: con 'content' (si fue provisto)
+    if content is not None:
+        doc = db.achievements.find_one({**base_q, "content": content}, {"_id": 1})
+        if doc:
+            _ACH_CACHE[key] = doc["_id"]
+            return doc["_id"]
+
+    # 2) Fallback: solo por (type, name)
+    doc = db.achievements.find_one(base_q, {"_id": 1})
+    if doc:
+        _ACH_CACHE[key] = doc["_id"]
+        return doc["_id"]
+
+    # No existe
+    current_app.logger.warning(
+        f"[achievements] No existe en DB -> type={bool(type_bool)} name='{name}' "
+        f"{'(content match falló)' if content else ''}"
+    )
+    return None
 
 # ============================
 # Endpoints 
@@ -629,6 +943,43 @@ def finish_run():
 
     # 2) CompletionDate SIEMPRE
     _set_lesson_completion_date(current_app.db, sess["userId"], course, lesson, now)
+
+    # === Lógica de curso completo + logros ===
+    try:
+        db = current_app.db
+        # Cargar curso completo para ver type (False=LESCO, True=LIBRAS) y todas las lecciones
+        course_full = db.courses.find_one({"_id": course["_id"]}) or {}
+        type_bool = bool(course_full.get("type", False))  # False LESCO, True LIBRAS
+
+        # 1) Si TODAS las lecciones del curso están completas, marcar completionDate del curso (si no la tenía)
+        completed_now = _mark_course_completed_if_needed(db, sess["userId"], course_full, now)
+        print(completed_now,"COMPLETED NOW")
+
+        # 2) Si el curso se completó ahora, contar cursos completados por lengua y dar logro si cae en hito
+        if completed_now:
+            finished_count = _count_completed_courses_by_type(db, sess["userId"], type_bool)
+            print(finished_count)
+            for k in (10, 25, 50, 100):
+                if finished_count == k:
+                    if _grant_milestone(db, sess["userId"], type_bool, "courses", k):
+                        print("Prueba logros 1")
+                        _check_and_award_achievements_count(db, sess["userId"], type_bool)
+                    break  # solo uno coincide
+
+        # 3) Releer nivel actual (post bump). Si coincide con hito, dar logro de nivel
+        user = db.users.find_one({"_id": sess["userId"]}, {"information": 1}) or {}
+        info = (user or {}).get("information", {})
+        current_level = int(info.get("librasLevel" if type_bool else "lescoLevel", 0))
+        print("NIVEL", current_level)
+        for k in (10, 25, 50, 100):
+            if current_level == k:
+                if _grant_milestone(db, sess["userId"], type_bool, "level", k):
+                    print("Prueba logros 1")
+                    _check_and_award_achievements_count(db, sess["userId"], type_bool)
+                break
+
+    except Exception:
+        current_app.logger.exception("Error procesando logros en /finish")
 
     # limpiar sesión
     sess["state"] = "finished"
