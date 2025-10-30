@@ -3,7 +3,6 @@ from flask_cors import CORS
 from pymongo import MongoClient
 from routes.user import user_blueprint
 from routes.exercises import exercises_bp
-
 from routes.coursesStudent import coursesStudent_blueprint  
 from routes.lessonsStudent import lessonsStudent_blueprint
 from routes.homeStudent import homeStudent_blueprint
