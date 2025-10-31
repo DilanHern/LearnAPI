@@ -14,6 +14,7 @@ print("Creando usuarios...");
 
 // Crear el estudiante primero
 const student = {
+  firebaseUid: "firebase_uid_student_maria_001",
   type: false, // Estudiante
   name: "María Badilla Castro",
   followers: [], // Se llenará después
@@ -37,6 +38,7 @@ print(`Estudiante creado: ${studentId}`);
 
 // Crear el profesor
 const teacher = {
+  firebaseUid: "firebase_uid_teacher_sofia_002",
   type: true, // Profesor
   name: "Sofia Castro Álvarez",
   followers: [studentId], // El estudiante sigue al profesor
@@ -60,6 +62,7 @@ print(`Profesor creado: ${teacherId}\n`);
 
 print("Creando usuario nuevo sin seguidores...");
 const newUser = {
+  firebaseUid: "firebase_uid_student_carlos_003",
   type: false, // Estudiante
   name: "Carlos Rodríguez Pérez",
   followers: [], // Array vacío - sin seguidores

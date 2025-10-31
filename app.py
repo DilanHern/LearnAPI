@@ -2,6 +2,7 @@ from flask import Flask, request, current_app, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
 from routes.user import user_blueprint
+from routes.auth import auth_blueprint
 from routes.exercises import exercises_bp
 from routes.news import news_bp
 from routes.coursesStudent import coursesStudent_blueprint  
@@ -23,6 +24,7 @@ app.db = db
 CORS(app)
 
 # Habilitamos las rutas
+app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
 app.register_blueprint(user_blueprint, url_prefix='/api/profile')
 app.register_blueprint(exercises_bp, url_prefix='/api/exercises')
 app.register_blueprint(news_bp, url_prefix="/api/news")
@@ -57,16 +59,7 @@ def set_lesco():
         return jsonify({'error': str(e)}), 500
     
 
-@app.route('/api/language/status', methods=['GET'])
-def get_lesco():
-    try:
-        # Devolver el valor actual de LESCO
-        return jsonify({
-            'lesco': current_app.config['LESCO']
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+
 
 
 if __name__ == '__main__':

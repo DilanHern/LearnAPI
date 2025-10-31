@@ -10,8 +10,12 @@ db.createCollection("users", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["type"],
+      required: ["firebaseUid", "type"],
       properties: {
+        firebaseUid: {
+          bsonType: "string",
+          description: "UID del usuario proveniente de Firebase Authentication"
+        },
         type: {
           bsonType: "bool",
           description: "false = Student, true = Teacher"
@@ -263,5 +267,7 @@ db.createCollection("teacherStatistics", {
     }
   }
 });
+
+db.users.createIndex({ firebaseUid: 1 }, { unique: true });
 
 print("\nCollections created successfully!");
