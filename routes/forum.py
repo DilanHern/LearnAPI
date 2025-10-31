@@ -5,6 +5,17 @@ import re
 
 forum_blueprint = Blueprint('forum', __name__)
 
+# Iniciales para el avatar
+def get_initials(name):
+    # Se divide el nombre por espacios
+    parts = name.split()
+    if len(parts) >= 2:
+        # Obtiene la primera letra de las dos primeras palabras
+        return f"{parts[0][0]}{parts[1][0]}".upper()
+    elif len(parts) == 1:
+        # Obtiene las dos primeras letras de la primera palabra
+        return parts[0][:2].upper()
+
 def time_ago(date):
     now = datetime.utcnow()
     diff = now - date
@@ -170,7 +181,7 @@ def get_forum(lesson_id):
                 latest = comments[0]
                 latest_user = db.users.find_one({'_id': latest['userId']}, {'name': 1})
                 latest_comment = {
-                    'userName': latest_user['name'] if latest_user else 'Usuario desconocido',
+                    'userName': latest_user['name'],
                     'content': latest['content'],
                     'videoURL': latest.get('videoURL'),
                     'date': time_ago(latest['date'])  
@@ -178,6 +189,7 @@ def get_forum(lesson_id):
             
             forum_data.append({
                 'userName': user_name,
+                'initials': get_initials(user_name),
                 'content': forum['content'],
                 'videoURL': forum.get('videoURL'),
                 'date': time_ago(forum['creationDate']), 
@@ -213,6 +225,7 @@ def get_comments(forum_id):
             
             comments_data.append({
                 'userName': user_name,
+                'initials': get_initials(user_name),
                 'date': time_ago(comment['date']),
                 'content': comment['content'],
                 'videoURL': comment.get('videoURL')
@@ -220,6 +233,34 @@ def get_comments(forum_id):
         
         return jsonify({
             'comments': comments_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@forum_blueprint.route('/lessons-with-forum/<course_id>', methods=['GET'])
+def get_lessons_with_forum(course_id):
+    try:
+        db = current_app.db
+        course_oid = ObjectId(course_id)
+        
+        # Buscar el curso
+        course = db.courses.find_one({'_id': course_oid})
+        if not course:
+            return jsonify({'error': 'Curso no encontrado'}), 404
+        
+        # Filtrar lecciones con forumEnabled: true
+        lessons_with_forum = []
+        for lesson in course.get('lessons', []):
+            if lesson.get('forumEnabled', False):
+                lessons_with_forum.append({
+                    'id': str(lesson['_id']),
+                    'name': lesson['name']
+                })
+        
+        return jsonify({
+            'lessons': lessons_with_forum
         }), 200
         
     except Exception as e:
