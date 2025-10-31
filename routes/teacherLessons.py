@@ -5,7 +5,7 @@ from datetime import datetime
 
 teacher_lessons_blueprint = Blueprint('teacherLessons', __name__)
 
-# Obtener curso completo por course_id
+# Obtener curso completo por course_id =======================================
 @teacher_lessons_blueprint.route('/course/<course_id>', methods=['GET'])
 def get_course(course_id):
     try:
@@ -48,7 +48,7 @@ def get_course(course_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# GET: Obtener una lección por su ID
+# GET: Obtener una lección por su ID ===========================================
 @teacher_lessons_blueprint.route('/lesson/<lesson_id>', methods=['GET'])
 def get_lesson(lesson_id):
     try:
@@ -88,8 +88,7 @@ def get_lesson(lesson_id):
             'questionCount': lesson.get('questionCount', 0),
             'attempts': lesson.get('attempts', 0),
             'forumEnabled': lesson.get('forumEnabled', True),
-            'theory': theory_data,  # Usar la teoría procesada
-            'createdAt': lesson.get('createdAt'),
+            'theory': theory_data,
             'course': {
                 'id': str(course['_id']),
                 'name': course.get('name', 'Curso sin nombre')
@@ -103,7 +102,7 @@ def get_lesson(lesson_id):
         return jsonify({'error': str(e)}), 500
 
 
-# POST: Añadir una lección a un curso
+# POST: Añadir una lección a un curso =======================================
 @teacher_lessons_blueprint.route('/course/<course_id>/lesson', methods=['POST'])
 def add_lesson(course_id):
     try:
@@ -129,7 +128,6 @@ def add_lesson(course_id):
             'questionCount': 0,
             'attempts': 0,
             'forumEnabled': True,
-            'createdAt': datetime.utcnow()
         }
 
         # Agregar al array de lecciones del curso
@@ -155,7 +153,7 @@ def add_lesson(course_id):
         return jsonify({'error': str(e)}), 500
 
 
-# PUT: Actualizar el orden de las lecciones de un curso
+# PUT: Actualizar el orden de las lecciones de un curso =======================================
 @teacher_lessons_blueprint.route('/course/<course_id>/lessons/reorder', methods=['PUT'])
 def reorder_lessons(course_id):
     try:
@@ -178,7 +176,7 @@ def reorder_lessons(course_id):
         # Crear un diccionario con los nuevos órdenes usando lessonId del frontend
         order_map = {}
         for lesson_data in lessons_data:
-            lesson_id = lesson_data.get('lessonId')  # Usar lessonId que viene del frontend
+            lesson_id = lesson_data.get('id')
             new_order = lesson_data.get('order')
             if lesson_id and new_order is not None:
                 order_map[lesson_id] = new_order
@@ -207,7 +205,7 @@ def reorder_lessons(course_id):
         print(f"Error en reorder_lessons: {str(e)}")  # Debug
         return jsonify({'error': str(e)}), 500
 
-# PUT: Eliminar múltiples lecciones
+# PUT: Eliminar múltiples lecciones =======================================
 @teacher_lessons_blueprint.route('/course/<course_id>/lessons/delete', methods=['PUT'])
 def delete_multiple_lessons(course_id):
     try:
@@ -242,7 +240,7 @@ def delete_multiple_lessons(course_id):
                     'id': lesson_id,
                     'name': lesson.get('name', '')
                 })
-                print(f"🗑️ Marcada para eliminar: {lesson_id} - {lesson.get('name', '')}")  # Debug
+                print(f"Marcada para eliminar: {lesson_id} - {lesson.get('name', '')}")  # Debug
             else:
                 updated_lessons.append(lesson)
 
@@ -252,7 +250,7 @@ def delete_multiple_lessons(course_id):
         # Reordenar las lecciones restantes
         for index, lesson in enumerate(updated_lessons, 1):
             lesson['order'] = index
-            print(f"🔢 Reordenando: {lesson.get('name', '')} -> orden {index}")  # Debug
+            print(f"Reordenando: {lesson.get('name', '')} -> orden {index}")  # Debug
 
         # Actualizar el curso en la base de datos
         db.courses.update_one(
@@ -272,7 +270,7 @@ def delete_multiple_lessons(course_id):
         return jsonify({'error': str(e)}), 500
 
 
-# PUT: Actualizar una lección (nombre, foro y teoría)
+# PUT: Actualizar una lección (nombre, foro y teoría) =======================================
 @teacher_lessons_blueprint.route('/lesson/<lesson_id>', methods=['PUT'])
 def update_lesson(lesson_id):
     try:
@@ -339,7 +337,7 @@ def update_lesson(lesson_id):
         return jsonify({'error': str(e)}), 500
 
 
-# PUT: Actualizar solo el nombre de una lección
+# PUT: Actualizar solo el nombre de una lección =======================================
 @teacher_lessons_blueprint.route('/lesson/<lesson_id>/name', methods=['PUT'])
 def update_lesson_name(lesson_id):
     try:
@@ -376,4 +374,265 @@ def update_lesson_name(lesson_id):
 
     except Exception as e:
         print(f"Error en update_lesson_name: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+# GET: Obtener todas las actividades de una lección =======================================
+@teacher_lessons_blueprint.route('/lesson/<lesson_id>/activities', methods=['GET'])
+def get_lesson_activities(lesson_id):
+    try:
+        db = current_app.db
+        lesson_oid = ObjectId(lesson_id)
+
+        # Buscar curso que contenga la lección
+        course = db.courses.find_one({'lessons._id': lesson_oid})
+        if not course:
+            return jsonify({'error': 'Lección no encontrada'}), 404
+
+        # Buscar la lección específica
+        lesson = next((l for l in course['lessons'] if l['_id'] == lesson_oid), None)
+        if not lesson:
+            return jsonify({'error': 'Lección no encontrada en el curso'}), 404
+
+        # Obtener las actividades (exercises) de la lección
+        exercises = lesson.get('exercises', [])
+        
+        # Mapear los tipos de ejercicio a nombres más descriptivos
+        exercise_type_map = {
+            1: "Selección única",
+            2: "Verdadero o falso", 
+            3: "Ordenar frase",
+            # Puedes agregar más tipos según necesites
+        }
+
+        # Formatear las actividades para la respuesta
+        exercises_list = []
+        for exercise in exercises:
+            exercise_type = exercise.get('exerciseType', 0)
+            exercise_data = {
+                'id': str(exercise['_id']),
+                'type': exercise_type,
+                'typeName': exercise_type_map.get(exercise_type, f"Tipo {exercise_type}"),
+                'order': exercise.get('order', 0),
+            }
+            exercises_list.append(exercise_data)
+
+        # Ordenar por orden
+        exercises_list.sort(key=lambda x: x['order'])
+
+        # Incluir información básica de la lección en la respuesta
+        response_data = {
+            'lesson': {
+                'id': str(lesson['_id']),
+                'name': lesson.get('name', 'Lección sin nombre'),
+                'questionCount': lesson.get('questionCount', 0),
+                'attempts': lesson.get('attempts', 0),
+                'forumEnabled': lesson.get('forumEnabled', True),
+                'course': {
+                    'id': str(course['_id']),
+                    'name': course.get('name', 'Curso sin nombre')
+                }
+            },
+            'activities': exercises_list,
+            'totalActivities': len(exercises_list)
+        }
+
+        return jsonify(response_data), 200
+
+    except Exception as e:
+        print(f"Error en get_lesson_activities: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+# POST: Crear una nueva actividad/ejercicio en una lección ======================================= 
+@teacher_lessons_blueprint.route('/lesson/<lesson_id>/activity', methods=['POST'])
+def create_activity(lesson_id):
+    try:
+        db = current_app.db
+        lesson_oid = ObjectId(lesson_id)
+
+        # Obtener datos del body
+        data = request.get_json()
+        
+        # Validar campos requeridos
+        if 'exerciseType' not in data:
+            return jsonify({'error': 'El tipo de ejercicio es requerido'}), 400
+        
+        exercise_type = data['exerciseType']
+        
+        # Buscar curso que contenga la lección
+        course = db.courses.find_one({'lessons._id': lesson_oid})
+        if not course:
+            return jsonify({'error': 'Lección no encontrada'}), 404
+
+        # Buscar la lección específica
+        lesson = next((l for l in course['lessons'] if l['_id'] == lesson_oid), None)
+        if not lesson:
+            return jsonify({'error': 'Lección no encontrada en el curso'}), 404
+
+        # Obtener las actividades existentes para determinar el siguiente orden
+        exercises = lesson.get('exercises', [])
+        next_order = len(exercises) + 1
+
+        # Crear el nuevo objeto de ejercicio (solo con campos básicos)
+        new_exercise = {
+            '_id': ObjectId(),
+            'exerciseType': exercise_type,
+            'order': next_order
+        }
+
+        # Actualizar la lección agregando el nuevo ejercicio
+        result = db.courses.update_one(
+            {'lessons._id': lesson_oid},
+            {'$push': {'lessons.$.exercises': new_exercise}}
+        )
+
+        if result.modified_count == 0:
+            return jsonify({'error': 'No se pudo agregar la actividad a la lección'}), 400
+
+        # Incrementar el contador de preguntas de la lección
+        db.courses.update_one(
+            {'lessons._id': lesson_oid},
+            {'$inc': {'lessons.$.questionCount': 1}}
+        )
+
+        # Mapear tipos de ejercicio a nombres descriptivos
+        exercise_type_map = {
+            1: "Selección única",
+            2: "Verdadero o falso", 
+            3: "Ordenar frase",
+        }
+
+        return jsonify({
+            'message': 'Actividad creada correctamente',
+            'activity': {
+                'id': str(new_exercise['_id']),
+                'type': new_exercise['exerciseType'],
+                'typeName': exercise_type_map.get(new_exercise['exerciseType'], f"Tipo {new_exercise['exerciseType']}"),
+                'order': new_exercise['order']
+            }
+        }), 201
+
+    except Exception as e:
+        print(f"Error en create_activity: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+# PUT: Actualizar actividades - intentos, orden y eliminar actividades
+@teacher_lessons_blueprint.route('/lesson/<lesson_id>/update-activities', methods=['PUT'])
+def update_activities(lesson_id):
+    try:
+        db = current_app.db
+        lesson_oid = ObjectId(lesson_id)
+
+        # Obtener datos del body
+        data = request.get_json()
+        
+        # Buscar curso que contenga la lección
+        course = db.courses.find_one({'lessons._id': lesson_oid})
+        if not course:
+            return jsonify({'error': 'Lección no encontrada'}), 404
+
+        # Buscar la lección específica
+        lesson_index = None
+        lesson = None
+        for i, l in enumerate(course['lessons']):
+            if l['_id'] == lesson_oid:
+                lesson_index = i
+                lesson = l
+                break
+
+        if not lesson:
+            return jsonify({'error': 'Lección no encontrada en el curso'}), 404
+
+        # Preparar actualizaciones
+        update_fields = {}
+        activities_to_delete = data.get('activitiesToDelete', [])
+        activities_order = data.get('activitiesOrder', [])
+        attempts = data.get('attempts')
+
+        # 1. Actualizar intentos si viene en el request
+        if attempts is not None:
+            update_fields[f'lessons.{lesson_index}.attempts'] = attempts
+
+        # 2. Procesar eliminación de actividades
+        current_exercises = lesson.get('exercises', [])
+        if activities_to_delete and isinstance(activities_to_delete, list):
+            # Convertir a ObjectIds para comparar
+            activities_to_delete_oids = [ObjectId(activity_id) for activity_id in activities_to_delete]
+            
+            # Filtrar ejercicios, removiendo los que están en la lista de eliminación
+            updated_exercises = [ex for ex in current_exercises if ex['_id'] not in activities_to_delete_oids]
+            
+            # Actualizar el campo de ejercises
+            update_fields[f'lessons.{lesson_index}.exercises'] = updated_exercises
+            
+            # Actualizar el contador de preguntas
+            deleted_count = len(current_exercises) - len(updated_exercises)
+            update_fields[f'lessons.{lesson_index}.questionCount'] = lesson.get('questionCount', 0) - deleted_count
+            
+            print(f"Eliminando {deleted_count} actividades: {activities_to_delete}")
+        else:
+            updated_exercises = current_exercises
+
+        # 3. Procesar reordenamiento de actividades
+        if activities_order and isinstance(activities_order, list):
+            # Crear un mapa de nuevos órdenes
+            order_map = {}
+            for activity_data in activities_order:
+                activity_id = activity_data.get('id')
+                new_order = activity_data.get('order')
+                if activity_id and new_order is not None:
+                    order_map[activity_id] = new_order
+
+            # Actualizar los órdenes en los ejercicios
+            for exercise in updated_exercises:
+                exercise_id = str(exercise['_id'])
+                if exercise_id in order_map:
+                    exercise['order'] = order_map[exercise_id]
+                    print(f"Reordenando actividad {exercise_id} -> orden {order_map[exercise_id]}")
+
+            # Asegurarse de que los ejercicios estén ordenados
+            updated_exercises.sort(key=lambda x: x.get('order', 0))
+            
+            # Actualizar el campo de ejercises con el nuevo orden
+            update_fields[f'lessons.{lesson_index}.exercises'] = updated_exercises
+
+        # Si no hay campos para actualizar
+        if not update_fields:
+            # En lugar de error, retornar éxito indicando que no había cambios
+            return jsonify({
+                'message': 'No se realizaron cambios (los datos ya estaban actualizados)',
+                'deleted_count': 0,
+                'reordered_count': 0,
+                'attempts_updated': False,
+                'no_changes': True
+            }), 200
+
+        # Actualizar en la base de datos
+        result = db.courses.update_one(
+            {'_id': course['_id']},
+            {'$set': update_fields}
+        )
+
+        if result.modified_count == 0:
+            # Si no se modificó nada, también es éxito (datos ya estaban actualizados)
+            return jsonify({
+                'message': 'No se realizaron cambios (los datos ya estaban actualizados)',
+                'deleted_count': 0,
+                'reordered_count': 0,
+                'attempts_updated': False,
+                'no_changes': True
+            }), 200
+
+        return jsonify({
+            'message': 'Actividades actualizadas correctamente',
+            'deleted_count': len(activities_to_delete) if activities_to_delete else 0,
+            'reordered_count': len(activities_order) if activities_order else 0,
+            'attempts_updated': attempts is not None,
+            'no_changes': False
+        }), 200
+
+    except Exception as e:
+        print(f"Error en update_activities: {str(e)}")
         return jsonify({'error': str(e)}), 500
