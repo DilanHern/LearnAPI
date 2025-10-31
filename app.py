@@ -3,6 +3,7 @@ from flask_cors import CORS
 from pymongo import MongoClient
 from routes.user import user_blueprint
 from routes.teacherCourses import teacher_courses_blueprint  
+from routes.teacherLessons import teacher_lessons_blueprint
 
 app = Flask(__name__)
 
@@ -21,6 +22,7 @@ CORS(app)
 # Habilitamos las rutas
 app.register_blueprint(user_blueprint, url_prefix='/api/profile')
 app.register_blueprint(teacher_courses_blueprint, url_prefix='/api')  
+app.register_blueprint(teacher_lessons_blueprint, url_prefix='/api/teacher')
 
 # Endpoint de seguridad
 @app.route('/health')   
