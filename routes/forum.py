@@ -5,8 +5,6 @@ import re
 
 forum_blueprint = Blueprint('forum', __name__)
 
-# Reemplaza la función time_ago con esta versión modificada:
-
 def time_ago(date):
     now = datetime.utcnow()
     diff = now - date
@@ -175,14 +173,14 @@ def get_forum(lesson_id):
                     'userName': latest_user['name'] if latest_user else 'Usuario desconocido',
                     'content': latest['content'],
                     'videoURL': latest.get('videoURL'),
-                    'date': time_ago(latest['date'])  # Cambiado a time_ago
+                    'date': time_ago(latest['date'])  
                 }
             
             forum_data.append({
                 'userName': user_name,
                 'content': forum['content'],
                 'videoURL': forum.get('videoURL'),
-                'date': time_ago(forum['creationDate']),  # Cambiado a time_ago
+                'date': time_ago(forum['creationDate']), 
                 'commentCount': comment_count,
                 'latestComment': latest_comment
             })
@@ -215,7 +213,7 @@ def get_comments(forum_id):
             
             comments_data.append({
                 'userName': user_name,
-                'date': time_ago(comment['date']),  # Cambiado a time_ago
+                'date': time_ago(comment['date']),
                 'content': comment['content'],
                 'videoURL': comment.get('videoURL')
             })
