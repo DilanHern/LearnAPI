@@ -180,7 +180,7 @@ db.createCollection("courses", {
   }
 });
 
-// 5. Create enrolled courses collection (renamed from completedCourses)
+// 5. Create enrolled courses collection (modificado: agregados totalQuestions y correctAnswers)
 db.createCollection("enrolledCourses", {
   validator: {
     $jsonSchema: {
@@ -189,7 +189,9 @@ db.createCollection("enrolledCourses", {
       properties: {
         userId: { bsonType: "objectId" },
         courseId: { bsonType: "objectId" },
-        completionDate: { bsonType: ["date", "null"] }, 
+        completionDate: { bsonType: ["date", "null"] },
+        totalQuestions: { bsonType: ["int", "null"] },  // Nuevo: preguntas totales
+        correctAnswers: { bsonType: ["int", "null"] },  // Nuevo: cantidad de correctas
         completedLessons: {
           bsonType: "array",
           items: {
@@ -246,65 +248,17 @@ db.createCollection("forums", {
   }
 });
 
-// 7. Create teacher statistics collection
+// 7. Create teacher statistics collection (modificado: campos directos sin generalStatistics)
 db.createCollection("teacherStatistics", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["userId", "generalStatistics"],
+      required: ["userId"],
       properties: {
         userId: { bsonType: "objectId" },
-        generalStatistics: {
-          bsonType: "object",
-          properties: {
-            totalSigns: { bsonType: "int" },
-            averageSuccess: { bsonType: "double" },
-            coursesCreated: { bsonType: "int" },
-            lessonsCreated: { bsonType: "int" },
-            totalStudents: { bsonType: "int" }
-          }
-        },
-        courseStatistics: {
-          bsonType: "array",
-          items: {
-            bsonType: "object",
-            properties: {
-              courseId: { bsonType: "objectId" },
-              averageSuccess: { bsonType: "double" },
-              studentStatistics: {
-                bsonType: "array",
-                items: { bsonType: "objectId" }
-              }
-            }
-          }
-        },
-        lessonStatistics: {
-          bsonType: "array",
-          items: {
-            bsonType: "object",
-            properties: {
-              lessonId: { bsonType: "objectId" },
-              averageAttempts: { bsonType: "double" },
-              successPercentage: { bsonType: "double" }
-            }
-          }
-        }
-      }
-    }
-  }
-});
-
-// 8. Create student statistics collection
-db.createCollection("studentStatistics", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["userId", "enrolledCourseId"],
-      properties: {
-        userId: { bsonType: "objectId" },
-        enrolledCourseId: { bsonType: "objectId" },
-        totalSigns: { bsonType: "int" },
-        averageSuccess: { bsonType: "double" }
+        coursesCreated: { bsonType: "int" },
+        lessonsCreated: { bsonType: "int" },
+        totalStudents: { bsonType: "int" }
       }
     }
   }

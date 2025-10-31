@@ -103,163 +103,163 @@ const achievements = [
     name: "¡Nivel 10!",
     type: false,
     content: "Subiste a nivel 10.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "¡Nivel 25!",
     type: false,
     content: "Subiste a nivel 25.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "¡Nivel 50!",
     type: false,
     content: "Subiste a nivel 50.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "¡Nivel 100!",
     type: false,
     content: "Subiste a nivel 100.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "10 cursos completados",
     type: false,
     content: "Completaste 10 cursos.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "25 cursos completados",
     type: false,
     content: "Completaste 25 cursos.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "50 cursos completados",
     type: false,
     content: "Completaste 50 cursos.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "100 cursos completados",
     type: false,
     content: "Completaste 100 cursos.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "5 logros conseguidos",
     type: false,
     content: "Conseguiste 5 logros.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "10 logros conseguidos",
     type: false,
-    content: "Conseguiste 5 logros.",
-    date: new Date("2025-28-10")
+    content: "Conseguiste 10 logros.",
+    date: new Date("2025-10-28")
   },
   {
     name: "15 logros conseguidos",
     type: false,
-    content: "Conseguiste 5 logros.",
-    date: new Date("2025-28-10")
+    content: "Conseguiste 15 logros.",
+    date: new Date("2025-10-28")
   },
   {
     name: "20 logros conseguidos",
     type: false,
-    content: "Conseguiste 5 logros.",
-    date: new Date("2025-28-10")
+    content: "Conseguiste 20 logros.",
+    date: new Date("2025-10-28")
   },
   {
     name: "25 logros conseguidos",
     type: false,
     content: "Conseguiste 25 logros.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   //LIBRAS
   {
     name: "¡Nivel 10!",
     type: true,
     content: "Subiste a nivel 10.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "¡Nivel 25!",
     type: true,
     content: "Subiste a nivel 25.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "¡Nivel 50!",
     type: true,
     content: "Subiste a nivel 50.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "¡Nivel 100!",
     type: true,
     content: "Subiste a nivel 100.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "10 cursos completados",
     type: true,
     content: "Completaste 10 cursos.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "25 cursos completados",
     type: true,
     content: "Completaste 25 cursos.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "50 cursos completados",
     type: true,
     content: "Completaste 50 cursos.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "100 cursos completados",
     type: true,
     content: "Completaste 100 cursos.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "5 logros conseguidos",
     type: true,
     content: "Conseguiste 5 logros.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "10 logros conseguidos",
     type: true,
     content: "Conseguiste 10 logros.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "15 logros conseguidos",
     type: true,
     content: "Conseguiste 15 logros.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "20 logros conseguidos",
     type: true,
     content: "Conseguiste 20 logros.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   },
   {
     name: "25 logros conseguidos",
     type: true,
     content: "Conseguiste 25 logros.",
-    date: new Date("2025-28-10")
+    date: new Date("2025-10-28")
   }
 ];
 
 const achievementIds = db.achievements.insertMany(achievements).insertedIds;
-print(`${Object.keys(achievementIds).length} logros creados (3 LESCO + 2 LIBRAS)\n`);
+print(`${Object.keys(achievementIds).length} logros creados (13 LESCO + 13 LIBRAS)\n`);
 
 // Asignar todos al estudiante
 const achievementIdArray = Object.values(achievementIds);
@@ -350,6 +350,8 @@ const enrolledCourse = {
   userId: studentId,
   courseId: courseId,
   completionDate: null,
+  totalQuestions: NumberInt(10),  // Nuevo: preguntas totales
+  correctAnswers: NumberInt(5),  // Nuevo: cantidad de correctas
   completedLessons: [
     {
       _id: new ObjectId(),
@@ -414,58 +416,23 @@ const forumId = db.forums.insertOne(forumPost).insertedId;
 print(`Post de foro creado: ${forumId}\n`);
 
 // ========================================
-// 7. CREAR ESTADÍSTICAS DE ESTUDIANTE
-// ========================================
-print("Creando estadísticas de estudiante...");
-
-const studentStatsId = new ObjectId();
-
-const studentStats = {
-  _id: studentStatsId,
-  userId: studentId,
-  enrolledCourseId: enrolledCourseId,
-  totalSigns: NumberInt(25),
-  averageSuccess: 0.85
-};
-
-db.studentStatistics.insertOne(studentStats);
-print(`Estadísticas de estudiante creadas: ${studentStatsId}\n`);
-
-// ========================================
-// 8. CREAR ESTADÍSTICAS DE PROFESOR
+// 7. CREAR ESTADÍSTICAS DE PROFESOR
 // ========================================
 print("Creando estadísticas de profesor...");
 
 const teacherStats = {
   userId: teacherId,
-  generalStatistics: {
-    totalSigns: NumberInt(50),
-    averageSuccess: 0.82,
-    coursesCreated: NumberInt(1),
-    lessonsCreated: NumberInt(1),
-    totalStudents: NumberInt(1)
-  },
-  courseStatistics: [
-    {
-      courseId: courseId,
-      averageSuccess: 0.85,
-      studentStatistics: [studentStatsId]
-    }
-  ],
-  lessonStatistics: [
-    {
-      lessonId: lessonId,
-      averageAttempts: 1.5,
-      successPercentage: 0.9
-    }
-  ]
+  coursesCreated: NumberInt(1),
+  lessonsCreated: NumberInt(1),
+  totalStudents: NumberInt(1)
+  // Eliminados: generalStatistics, courseStatistics y lessonStatistics
 };
 
 const teacherStatsId = db.teacherStatistics.insertOne(teacherStats).insertedId;
 print(`Estadísticas de profesor creadas: ${teacherStatsId}\n`);
 
 // ========================================
-// 9. CREAR NUEVO CURSO LIBRAS Y ENROLLED COURSE PARA MARÍA
+// 8. CREAR NUEVO CURSO LIBRAS Y ENROLLED COURSE PARA MARÍA
 // ========================================
 print("Creando nuevo curso LIBRAS y enrolled course para María Badilla Castro...");
 
@@ -531,6 +498,8 @@ const newEnrolledCourse = {
   userId: studentId,
   courseId: newCourseId,
   completionDate: null,
+  totalQuestions: null,  // Nuevo: preguntas totales
+  correctAnswers: null,  // Nuevo: cantidad de correctas
   completedLessons: []
 };
 
@@ -545,7 +514,7 @@ db.users.updateOne(
 print("Nuevo curso agregado a myCourses de María\n");
 
 // ========================================
-// 10. AGREGAR SEGUNDA LECCIÓN AL CURSO LESCO
+// 9. AGREGAR SEGUNDA LECCIÓN AL CURSO LESCO
 // ========================================
 print("Agregando segunda lección al curso LESCO...");
 
@@ -601,3 +570,4 @@ db.courses.updateOne(
   { $push: { lessons: newLesson } }
 );
 print(`Segunda lección agregada al curso LESCO: ${lessonId2}\n`);
+
