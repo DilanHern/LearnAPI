@@ -266,6 +266,7 @@ def get_teacher_courses(teacher_id):
                 'id': str(course['_id']),
                 'name': course.get('name', 'Sin nombre'),
                 'difficulty': course.get('difficulty', 1),
+                'status': course.get('status'),
                 'language': 'LESCO' if course.get('language') == False else 'LIBRAS',
                 'description': course.get('description', 'Sin descripción')
             })
