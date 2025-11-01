@@ -367,7 +367,6 @@ def create_activity_news():
         return jsonify({"error": "course or lesson not found"}), 404
 
     try:
-        print(course_doc, "asd",lesson_doc)
         _create_news_activity_result(db, user_oid, course_doc, lesson_doc, correct, total)
     except Exception:
         current_app.logger.exception("Error creando noticia de resultado de actividad")

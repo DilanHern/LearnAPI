@@ -152,7 +152,7 @@ def get_home_info(user_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@homeStudent_blueprint.route('/api/language/status', methods=['GET'])
+@homeStudent_blueprint.route('/language/status', methods=['GET'])
 def get_lesco():
     try:
         # Devolver el valor actual de LESCO
