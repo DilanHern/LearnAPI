@@ -241,7 +241,6 @@ def get_comments(forum_id):
         return jsonify({'error': str(e)}), 500
 
 
-
 @forum_blueprint.route('/forum-teacher-courses/<teacher_id>', methods=['GET'])
 def get_teacher_courses(teacher_id):
     try:
@@ -269,6 +268,7 @@ def get_teacher_courses(teacher_id):
                 'language': 'LESCO' if course.get('language') == False else 'LIBRAS',
                 'description': course.get('description', 'Sin descripción')
             })
+        print("Cursos obtenidos para el foro del profesor:", lesco) # DEBUG
         
         return jsonify({
             'courses': courses_data
