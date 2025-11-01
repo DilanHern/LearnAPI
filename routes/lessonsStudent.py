@@ -100,3 +100,36 @@ def get_infoLesson(lesson_id, user_id):
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+# Agrega esto al final de homeStudent.py:
+
+@lessonsStudent_blueprint.route('/forun-teacher-courses/<teacher_id>', methods=['GET'])
+def get_teacher_courses(teacher_id):
+    try:
+        db = current_app.db
+        teacher_oid = ObjectId(teacher_id)
+        
+        # Verificar que el profesor existe
+        teacher = db.users.find_one({'_id': teacher_oid})
+        if not teacher:
+            return jsonify({'error': 'Profesor no encontrado'}), 404
+        
+        # Buscar cursos del profesor
+        courses = list(db.courses.find({'userId': teacher_oid}))
+        
+        courses_data = []
+        for course in courses:
+            courses_data.append({
+                'id': str(course['_id']),
+                'name': course.get('name', 'Sin nombre'),
+                'difficulty': course.get('difficulty', 1),  
+                'language': 'LESCO' if course.get('language') == False else 'LIBRAS',  
+                'description': course.get('description', 'Sin descripción')
+            })
+        
+        return jsonify({
+            'courses': courses_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

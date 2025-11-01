@@ -188,6 +188,7 @@ def get_forum(lesson_id):
                 }
             
             forum_data.append({
+                'id': str(forum['_id']),
                 'userName': user_name,
                 'initials': get_initials(user_name),
                 'content': forum['content'],
@@ -224,6 +225,7 @@ def get_comments(forum_id):
             user_name = user['name'] if user else 'Usuario desconocido'
             
             comments_data.append({
+                'id': str(comment['_id']),
                 'userName': user_name,
                 'initials': get_initials(user_name),
                 'date': time_ago(comment['date']),
@@ -238,6 +240,43 @@ def get_comments(forum_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+
+@forum_blueprint.route('/forum-teacher-courses/<teacher_id>', methods=['GET'])
+def get_teacher_courses(teacher_id):
+    try:
+        db = current_app.db
+        teacher_oid = ObjectId(teacher_id)
+        
+        # Obtener configuración LESCO
+        lesco = current_app.config.get('LESCO', True)  
+        
+        # Verificar que el profesor existe
+        teacher = db.users.find_one({'_id': teacher_oid})
+        if not teacher:
+            return jsonify({'error': 'Profesor no encontrado'}), 404
+        
+        # Buscar cursos del profesor filtrados por idioma
+        language_filter = False if lesco else True  # False = LESCO, True = LIBRAS
+        courses = list(db.courses.find({'userId': teacher_oid, 'language': language_filter}))
+        
+        courses_data = []
+        for course in courses:
+            courses_data.append({
+                'id': str(course['_id']),
+                'name': course.get('name', 'Sin nombre'),
+                'difficulty': course.get('difficulty', 1),
+                'language': 'LESCO' if course.get('language') == False else 'LIBRAS',
+                'description': course.get('description', 'Sin descripción')
+            })
+        
+        return jsonify({
+            'courses': courses_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
 
 @forum_blueprint.route('/lessons-with-forum/<course_id>', methods=['GET'])
 def get_lessons_with_forum(course_id):
