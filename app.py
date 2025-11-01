@@ -11,11 +11,12 @@ from routes.news import news_bp
 from routes.coursesStudent import coursesStudent_blueprint  
 from routes.lessonsStudent import lessonsStudent_blueprint
 from routes.homeStudent import homeStudent_blueprint
+from routes.forum import forum_blueprint
 
 app = Flask(__name__)
 
 #Variable global para definir el lenguaje por defecto
-app.config['LESCO'] = False
+app.config['LESCO'] = True
 
 # conexion a MongoDB, ajustar según sea necesario cada uno localmente
 # (luego Jhon lo desplegará en la nube) 
@@ -37,6 +38,8 @@ app.register_blueprint(news_bp, url_prefix="/api/news")
 app.register_blueprint(coursesStudent_blueprint, url_prefix='/api')
 app.register_blueprint(lessonsStudent_blueprint, url_prefix='/api')
 app.register_blueprint(homeStudent_blueprint, url_prefix='/api')
+app.register_blueprint(forum_blueprint, url_prefix='/api/forum')
+
 
 
 # Endpoint de seguridad
