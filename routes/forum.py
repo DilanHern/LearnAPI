@@ -256,7 +256,11 @@ def get_teacher_courses(teacher_id):
             return jsonify({'error': 'Profesor no encontrado'}), 404
         
         # Buscar cursos del profesor filtrados por idioma
-        language_filter = False if lesco else True  # False = LESCO, True = LIBRAS
+        if lesco:
+            language_filter = True  # Buscar cursos LESCO
+        else:
+            language_filter = False  # Buscar cursos LIBRAS
+        
         courses = list(db.courses.find({'userId': teacher_oid, 'language': language_filter}))
         
         courses_data = []
@@ -276,7 +280,7 @@ def get_teacher_courses(teacher_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
+
 
 @forum_blueprint.route('/lessons-with-forum/<course_id>', methods=['GET'])
 def get_lessons_with_forum(course_id):
