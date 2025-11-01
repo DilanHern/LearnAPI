@@ -169,7 +169,6 @@ def create_teacher_course():
         user_oid = ObjectId(data['user_id'])
         
         # Verificar que el usuario existe y es profesor
-        #se puede quitar porque es solo en profes
         user = db.users.find_one({'_id': user_oid})
         if not user:
             return jsonify({'error': 'Usuario no encontrado'}), 404
@@ -196,6 +195,9 @@ def create_teacher_course():
         }
         
         result = db.courses.insert_one(new_course)
+        
+        # ACTUALIZAR ESTADÍSTICAS - Incrementar cursos creados
+        update_teacher_statistics(db, user_oid, courses_created=1)
         
         return jsonify({
             'message': 'Curso creado exitosamente',
@@ -313,17 +315,28 @@ def delete_teacher_course():
         if not existing_course:
             return jsonify({'error': 'Curso no encontrado'}), 404
         
+        # Obtener el ID del profesor para actualizar estadísticas
+        teacher_id = existing_course['userId']
+        
+        # Contar lecciones que se eliminarán
+        lessons_to_remove = len(existing_course.get('lessons', []))
+        
         # Eliminar el curso
         db.courses.delete_one({'_id': course_oid})
         
         # También eliminar inscripciones relacionadas
         db.enrolledCourses.delete_many({'courseId': course_oid})
         
+        # ACTUALIZAR ESTADÍSTICAS - Decrementar cursos y lecciones
+        update_teacher_statistics(db, teacher_id, courses_created=-1, lessons_created=-lessons_to_remove)
+        
         return jsonify({'message': 'Curso eliminado exitosamente'}), 200
         
     except Exception as e:
         print(f"Error en delete_teacher_course: {str(e)}")
         return jsonify({'error': 'Error interno del servidor'}), 500
+
+
 
 @teacher_courses_blueprint.route('/course-students/<course_id>', methods=['GET'])
 def get_course_students(course_id):
@@ -363,6 +376,45 @@ def get_course_students(course_id):
     except Exception as e:
         print(f"Error en get_course_students: {str(e)}")
         return jsonify({'error': 'Error interno del servidor'}), 500
+
+
+def update_teacher_statistics(db, teacher_id, courses_created=0, lessons_created=0, students_added=0):
+    
+    #Actualiza las estadísticas del profesor en la colección teacherStatistics
+
+    try:
+        # Buscar si existe un documento de estadísticas para este profesor
+        existing_stats = db.teacherStatistics.find_one({'userId': teacher_id})
+        
+        if existing_stats:
+            # Actualizar documento existente
+            update_data = {}
+            if courses_created != 0:
+                update_data['coursesCreated'] = max(0, existing_stats.get('coursesCreated', 0) + courses_created)
+            if lessons_created != 0:
+                update_data['lessonsCreated'] = max(0, existing_stats.get('lessonsCreated', 0) + lessons_created)
+            if students_added != 0:
+                update_data['totalStudents'] = max(0, existing_stats.get('totalStudents', 0) + students_added)
+            
+            if update_data:
+                db.teacherStatistics.update_one(
+                    {'userId': teacher_id},
+                    {'$set': update_data}
+                )
+        else:
+            # Crear nuevo documento de estadísticas si no existe
+            # Solo crear si se agrega valores positivos, es decir no eliminar
+            if courses_created > 0 or lessons_created > 0 or students_added > 0:
+                new_stats = {
+                    'userId': teacher_id,
+                    'coursesCreated': max(0, courses_created),
+                    'lessonsCreated': max(0, lessons_created),
+                    'totalStudents': max(0, students_added)
+                }
+                db.teacherStatistics.insert_one(new_stats)
+                
+    except Exception as e:
+        print(f"Error en update_teacher_statistics: {str(e)}")
 
 def get_initials(name):
     if not name:
