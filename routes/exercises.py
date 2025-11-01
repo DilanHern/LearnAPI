@@ -540,7 +540,6 @@ def _mark_course_completed_if_needed(db, user_oid, course_doc, when_dt):
     if prog.get("completionDate"):
         return False
     if _are_all_lessons_complete(db, user_oid, course_doc):
-        print("si entro")
         db.enrolledCourses.update_one(
             {"_id": prog["_id"]},
             {"$set": {"completionDate": when_dt}}
@@ -953,16 +952,13 @@ def finish_run():
 
         # 1) Si TODAS las lecciones del curso están completas, marcar completionDate del curso (si no la tenía)
         completed_now = _mark_course_completed_if_needed(db, sess["userId"], course_full, now)
-        print(completed_now,"COMPLETED NOW")
 
         # 2) Si el curso se completó ahora, contar cursos completados por lengua y dar logro si cae en hito
         if completed_now:
             finished_count = _count_completed_courses_by_type(db, sess["userId"], type_bool)
-            print(finished_count)
             for k in (10, 25, 50, 100):
                 if finished_count == k:
                     if _grant_milestone(db, sess["userId"], type_bool, "courses", k):
-                        print("Prueba logros 1")
                         _check_and_award_achievements_count(db, sess["userId"], type_bool)
                     break  # solo uno coincide
 
@@ -970,11 +966,9 @@ def finish_run():
         user = db.users.find_one({"_id": sess["userId"]}, {"information": 1}) or {}
         info = (user or {}).get("information", {})
         current_level = int(info.get("librasLevel" if type_bool else "lescoLevel", 0))
-        print("NIVEL", current_level)
         for k in (10, 25, 50, 100):
             if current_level == k:
                 if _grant_milestone(db, sess["userId"], type_bool, "level", k):
-                    print("Prueba logros 1")
                     _check_and_award_achievements_count(db, sess["userId"], type_bool)
                 break
 

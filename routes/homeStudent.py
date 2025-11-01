@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, current_app, request
+from flask import Blueprint, app, jsonify, current_app, request
 from bson import ObjectId
 from datetime import datetime
 import re
@@ -152,3 +152,13 @@ def get_home_info(user_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@homeStudent_blueprint.route('/language/status', methods=['GET'])
+def get_lesco():
+    try:
+        # Devolver el valor actual de LESCO
+        return jsonify({
+            'lesco': current_app.config['LESCO']
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

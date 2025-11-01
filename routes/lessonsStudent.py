@@ -53,6 +53,7 @@ def get_streak_days(user):
     streak = info.get('streak', {})
     return streak.get('current', 0)
 
+# ...imports...
 @lessonsStudent_blueprint.route('/info-lesson/<lesson_id>/<user_id>', methods=['GET'])
 def get_infoLesson(lesson_id, user_id):
     try:
@@ -60,76 +61,58 @@ def get_infoLesson(lesson_id, user_id):
         lesson_oid = ObjectId(lesson_id)
         user_oid = ObjectId(user_id)
 
-        # Obtener información del usuario para el streak
         user = db.users.find_one({'_id': user_oid})
         if not user:
             return jsonify({'error': 'Usuario no encontrado'}), 404
 
-        # Calcular la racha
         streak = get_streak_days(user)
 
-        # Buscar la lección y el nombre del curso
         course = db.courses.find_one(
             {'lessons._id': lesson_oid},
-            {'name': 1, 'lessons.$': 1} 
+            {'name': 1, 'lessons.$': 1}
         )
         if not course or 'lessons' not in course or len(course['lessons']) == 0:
             return jsonify({'error': 'Lección no encontrada'}), 404
 
         lesson = course['lessons'][0]
 
-        # Iterar en theory para obtener text y sign
+        # === NUEVO: remainingAttempts desde enrolledCourses ===
+        prog = db.enrolledCourses.find_one(
+            {'userId': user_oid, 'courseId': course['_id']},
+            {'completedLessons': 1}
+        )
+        remaining_attempts = None
+        if prog and prog.get('completedLessons'):
+            for item in prog['completedLessons']:
+                if item.get('lessonId') == lesson['_id']:
+                    remaining_attempts = int(item.get('remainingAttempts', 0))
+                    break
+
+        # Si no hay registro en enrolledCourses aún, deriva del límite de la lección
+        attempts_limit = int(lesson.get('attempts', 0) or 0)
+        if remaining_attempts is None:
+            # -1 = ilimitado cuando no hay límite (>0 => con límite)
+            remaining_attempts = (-1 if attempts_limit <= 0 else attempts_limit)
+
         theory_list = []
         for theory_item in lesson.get('theory', []):
             theory_list.append({
                 'text': theory_item.get('text', ''),
-                'sign': str(theory_item.get('sign', '')) 
+                'sign': str(theory_item.get('sign', ''))
             })
 
-        # Construir el objeto de la lección con todos los datos solicitados
         lesson_data = {
             'streak': streak,
             'courseName': course.get('name', 'Curso sin nombre'),
             'lessonName': lesson.get('name', 'Lección sin nombre'),
             'theory': theory_list,
-            'attempts': lesson.get('attempts', 0),
-            'questionCount': lesson.get('questionCount', 0)
+            'attempts': attempts_limit,             # límite configurado en la lección (puede ser 0/None = ilimitado)
+            'questionCount': lesson.get('questionCount', 0),
+            'remainingAttempts': remaining_attempts, # <-- LO QUE USARÁ EL FRONT
+            'unlimited': (remaining_attempts < 0)
         }
 
         return jsonify(lesson_data), 200
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    
-# Agrega esto al final de homeStudent.py:
-
-@lessonsStudent_blueprint.route('/forun-teacher-courses/<teacher_id>', methods=['GET'])
-def get_teacher_courses(teacher_id):
-    try:
-        db = current_app.db
-        teacher_oid = ObjectId(teacher_id)
-        
-        # Verificar que el profesor existe
-        teacher = db.users.find_one({'_id': teacher_oid})
-        if not teacher:
-            return jsonify({'error': 'Profesor no encontrado'}), 404
-        
-        # Buscar cursos del profesor
-        courses = list(db.courses.find({'userId': teacher_oid}))
-        
-        courses_data = []
-        for course in courses:
-            courses_data.append({
-                'id': str(course['_id']),
-                'name': course.get('name', 'Sin nombre'),
-                'difficulty': course.get('difficulty', 1),  
-                'language': 'LESCO' if course.get('language') == False else 'LIBRAS',  
-                'description': course.get('description', 'Sin descripción')
-            })
-        
-        return jsonify({
-            'courses': courses_data
-        }), 200
-        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
