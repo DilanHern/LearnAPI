@@ -298,7 +298,147 @@ def get_user_following(user_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
+
+# Nuevas rutas con IDs para la pantalla de followers&following
+@user_blueprint.route('/followers-list/<user_id>', methods=['GET'])
+def get_user_followers_list(user_id):
+    """
+    Obtiene la lista de seguidores CON sus IDs para poder gestionarlos
+    """
+    try:
+        db = current_app.db
+        user_oid = ObjectId(user_id)
+        
+        user = db.users.find_one({'_id': user_oid})
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        followers_ids = user.get('followers', [])
+        
+        if not followers_ids:
+            return jsonify({'followers': []}), 200
+        
+        followers = db.users.find(
+            {'_id': {'$in': followers_ids}},
+            {'name': 1}  
+        )
+        
+        followers_list = [
+            {
+                'id': str(follower['_id']),
+                'name': follower.get('name', 'Usuario'),
+                'initials': get_initials(follower.get('name', 'U'))
+            }
+            for follower in followers
+        ]
+        
+        return jsonify({
+            'followers': followers_list,
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@user_blueprint.route('/following-list/<user_id>', methods=['GET'])
+def get_user_following_list(user_id):
+    """
+    Obtiene la lista de seguidos CON sus IDs para poder gestionarlos
+    """
+    try:
+        db = current_app.db
+        user_oid = ObjectId(user_id)
+        
+        user = db.users.find_one({'_id': user_oid})
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+
+        following_ids = user.get('following', [])
+
+        if not following_ids:
+            return jsonify({'following': []}), 200
+
+        followings = db.users.find(
+            {'_id': {'$in': following_ids}},
+            {'name': 1}  
+        )
+
+        following_list = [
+            {
+                'id': str(following['_id']),
+                'name': following.get('name', 'Usuario'),
+                'initials': get_initials(following.get('name', 'U'))
+            }
+            for following in followings
+        ]
+        
+        return jsonify({
+            'following': following_list,
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@user_blueprint.route('/remove-follower', methods=['POST'])
+def remove_follower():
+    """
+    Elimina un seguidor de la lista de seguidores del usuario.
+    El usuario actual elimina a un seguidor de su lista.
+    """
+    try:
+        db = current_app.db
+        data = request.get_json()
+        
+        # Validar datos
+        if not data or 'userId' not in data or 'followerId' not in data:
+            return jsonify({'error': 'Se requieren userId y followerId'}), 400
+        
+        user_id = ObjectId(data['userId'])  # Usuario que elimina el seguidor
+        follower_id = ObjectId(data['followerId'])  # Seguidor a eliminar
+        
+        # Validar que no sea el mismo usuario
+        if user_id == follower_id:
+            return jsonify({'error': 'No puedes eliminarte a ti mismo'}), 400
+        
+        # Verificar que ambos usuarios existen
+        user = db.users.find_one({'_id': user_id})
+        follower = db.users.find_one({'_id': follower_id})
+        
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        if not follower:
+            return jsonify({'error': 'Seguidor no encontrado'}), 404
+        
+        # Verificar si realmente es un seguidor
+        if follower_id not in user.get('followers', []):
+            return jsonify({'error': 'Este usuario no es tu seguidor'}), 400
+        
+        # Remover follower_id de la lista de followers del usuario
+        db.users.update_one(
+            {'_id': user_id},
+            {'$pull': {'followers': follower_id}}
+        )
+        
+        # Remover user_id de la lista de following del seguidor
+        db.users.update_one(
+            {'_id': follower_id},
+            {'$pull': {'following': user_id}}
+        )
+        
+        return jsonify({
+            'message': 'Seguidor eliminado exitosamente',
+            'removed': {
+                'id': str(follower_id),
+                'name': follower.get('name', 'Usuario'),
+                'initials': get_initials(follower.get('name', 'U'))
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @user_blueprint.route('/add-friends/<user_id>', methods=['GET'])
 def add_friends(user_id):
     try:
@@ -472,6 +612,64 @@ def get_teacher_profile(user_id):
         }
         
         return jsonify(profile_data), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@user_blueprint.route('/search/<user_id>', methods=['POST'])
+def search_users(user_id):
+    try:
+        db = current_app.db
+        data = request.get_json()
+        
+        # Validar que venga el searchQuery
+        if not data or 'searchQuery' not in data:
+            return jsonify({'error': 'Se requiere searchQuery'}), 400
+        
+        search_query = data['searchQuery'].strip()
+        
+        # Si la búsqueda está vacía, retornar lista vacía
+        if not search_query:
+            return jsonify({'users': [], 'count': 0}), 200
+        
+        user_oid = ObjectId(user_id)
+        
+        # Obtener usuario actual para excluir a quienes ya sigue
+        user = db.users.find_one({'_id': user_oid})
+        if not user:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        # Obtener IDs de usuarios que ya sigue
+        following_ids = user.get('following', [])
+        
+        # Crear lista de IDs a excluir (el usuario mismo + los que ya sigue)
+        exclude_ids = following_ids + [user_oid]
+        
+        # Buscar usuarios por nombre (case insensitive) usando regex
+        # $regex permite búsqueda por coincidencias parciales
+        # $options: 'i' hace la búsqueda case-insensitive
+        search_results = db.users.find(
+            {
+                '_id': {'$nin': exclude_ids},  # Excluir usuarios que ya sigue y él mismo
+                'name': {'$regex': search_query, '$options': 'i'}  # Búsqueda por nombre
+            },
+            {'name': 1}  # Solo traer el campo name
+        ).limit(20)  # Limitar a 20 resultados para no sobrecargar
+        
+        # Construir lista de resultados
+        users_list = [
+            {
+                'id': str(user['_id']),
+                'name': user.get('name', 'Usuario'),
+                'initials': get_initials(user.get('name', 'U'))
+            }
+            for user in search_results
+        ]
+        
+        return jsonify({
+            'users': users_list,
+            'count': len(users_list)
+        }), 200
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
